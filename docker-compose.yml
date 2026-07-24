@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: boq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: boq
+      POSTGRES_PASSWORD: boq
+      POSTGRES_DB: boq_pro
+    ports:
+      - "5432:5432"
+    volumes:
+      - boq_pg_data:/var/lib/postgresql/data
+
+volumes:
+  boq_pg_data:

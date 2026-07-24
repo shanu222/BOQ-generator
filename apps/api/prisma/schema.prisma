@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Material {
+  id              String   @id
+  name            String
+  description     String
+  category        String
+  unit            String
+  defaultRate     Float
+  consumptionNote String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Labour {
+  id          String   @id
+  name        String
+  description String
+  unit        String
+  defaultRate Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Equipment {
+  id          String   @id
+  name        String
+  description String
+  unit        String
+  defaultRate Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

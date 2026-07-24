@@ -1,0 +1,381 @@
+{
+  "id": "20-marla-luxury",
+  "plotKey": "20-marla",
+  "name": "Luxury Villa",
+  "tagline": "Garage · servant · study · 4 beds · 3 baths",
+  "style": "luxury",
+  "bedrooms": 4,
+  "bathrooms": 3,
+  "hasPorch": true,
+  "hasStair": true,
+  "hasGarage": true,
+  "features": [
+    "Garage",
+    "Drawing Room",
+    "Dining",
+    "Study",
+    "4 Bedrooms",
+    "3 Washrooms",
+    "Servant",
+    "Store"
+  ],
+  "partitions": [
+    {
+      "x1": 0.22,
+      "y1": 0,
+      "x2": 0.22,
+      "y2": 0.18,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.22,
+      "y1": 0.18,
+      "x2": 1,
+      "y2": 0.18,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.5,
+      "y1": 0.18,
+      "x2": 0.5,
+      "y2": 0.4,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.75,
+      "y1": 0.18,
+      "x2": 0.75,
+      "y2": 0.4,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0,
+      "y1": 0.4,
+      "x2": 1,
+      "y2": 0.4,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.3,
+      "y1": 0.4,
+      "x2": 0.3,
+      "y2": 0.62,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.55,
+      "y1": 0.4,
+      "x2": 0.55,
+      "y2": 0.62,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0,
+      "y1": 0.62,
+      "x2": 1,
+      "y2": 0.62,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.25,
+      "y1": 0.62,
+      "x2": 0.25,
+      "y2": 1
+    },
+    {
+      "x1": 0.5,
+      "y1": 0.62,
+      "x2": 0.5,
+      "y2": 1
+    },
+    {
+      "x1": 0.75,
+      "y1": 0.62,
+      "x2": 0.75,
+      "y2": 1
+    },
+    {
+      "x1": 0,
+      "y1": 0.18,
+      "x2": 0.22,
+      "y2": 0.18,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Garage",
+      "type": "garage",
+      "x": 0,
+      "y": 0,
+      "w": 0.22,
+      "h": 0.18
+    },
+    {
+      "name": "Porch",
+      "type": "porch",
+      "x": 0.22,
+      "y": 0,
+      "w": 0.78,
+      "h": 0.18
+    },
+    {
+      "name": "Drawing Room",
+      "type": "drawing-room",
+      "x": 0,
+      "y": 0.18,
+      "w": 0.5,
+      "h": 0.22
+    },
+    {
+      "name": "Dining",
+      "type": "dining",
+      "x": 0.5,
+      "y": 0.18,
+      "w": 0.25,
+      "h": 0.22
+    },
+    {
+      "name": "Kitchen",
+      "type": "kitchen",
+      "x": 0.75,
+      "y": 0.18,
+      "w": 0.25,
+      "h": 0.22
+    },
+    {
+      "name": "Study",
+      "type": "other",
+      "x": 0,
+      "y": 0.4,
+      "w": 0.3,
+      "h": 0.22
+    },
+    {
+      "name": "Lounge",
+      "type": "lounge",
+      "x": 0.3,
+      "y": 0.4,
+      "w": 0.25,
+      "h": 0.22
+    },
+    {
+      "name": "Store",
+      "type": "store",
+      "x": 0.55,
+      "y": 0.4,
+      "w": 0.2,
+      "h": 0.22
+    },
+    {
+      "name": "Servant",
+      "type": "other",
+      "x": 0.75,
+      "y": 0.4,
+      "w": 0.25,
+      "h": 0.22
+    },
+    {
+      "name": "Bedroom 1",
+      "type": "bedroom",
+      "x": 0,
+      "y": 0.62,
+      "w": 0.25,
+      "h": 0.38
+    },
+    {
+      "name": "Bedroom 2",
+      "type": "bedroom",
+      "x": 0.25,
+      "y": 0.62,
+      "w": 0.25,
+      "h": 0.38
+    },
+    {
+      "name": "Bedroom 3",
+      "type": "bedroom",
+      "x": 0.5,
+      "y": 0.62,
+      "w": 0.25,
+      "h": 0.38
+    },
+    {
+      "name": "Bedroom 4",
+      "type": "bedroom",
+      "x": 0.75,
+      "y": 0.62,
+      "w": 0.25,
+      "h": 0.2
+    },
+    {
+      "name": "Washroom 1",
+      "type": "washroom",
+      "x": 0.75,
+      "y": 0.82,
+      "w": 0.12,
+      "h": 0.18
+    },
+    {
+      "name": "Washroom 2",
+      "type": "washroom",
+      "x": 0.87,
+      "y": 0.82,
+      "w": 0.13,
+      "h": 0.09
+    },
+    {
+      "name": "Washroom 3",
+      "type": "washroom",
+      "x": 0.87,
+      "y": 0.91,
+      "w": 0.13,
+      "h": 0.09
+    }
+  ],
+  "doors": [
+    {
+      "x": 0.11,
+      "y": 0.18
+    },
+    {
+      "x": 0.45,
+      "y": 0.18,
+      "width": 1.1
+    },
+    {
+      "x": 0.5,
+      "y": 0.28
+    },
+    {
+      "x": 0.75,
+      "y": 0.28
+    },
+    {
+      "x": 0.15,
+      "y": 0.4
+    },
+    {
+      "x": 0.4,
+      "y": 0.4
+    },
+    {
+      "x": 0.55,
+      "y": 0.5
+    },
+    {
+      "x": 0.75,
+      "y": 0.5
+    },
+    {
+      "x": 0.12,
+      "y": 0.62
+    },
+    {
+      "x": 0.38,
+      "y": 0.62
+    },
+    {
+      "x": 0.62,
+      "y": 0.62
+    },
+    {
+      "x": 0.82,
+      "y": 0.62
+    },
+    {
+      "x": 0.75,
+      "y": 0.9,
+      "width": 0.7
+    },
+    {
+      "x": 0.87,
+      "y": 0.86,
+      "width": 0.7
+    },
+    {
+      "x": 0.87,
+      "y": 0.95,
+      "width": 0.7
+    }
+  ],
+  "windows": [
+    {
+      "x": 0.5,
+      "y": 0,
+      "width": 1.6
+    },
+    {
+      "x": 0,
+      "y": 0.28,
+      "width": 1.5
+    },
+    {
+      "x": 1,
+      "y": 0.28
+    },
+    {
+      "x": 0,
+      "y": 0.5
+    },
+    {
+      "x": 1,
+      "y": 0.5
+    },
+    {
+      "x": 0.12,
+      "y": 1
+    },
+    {
+      "x": 0.38,
+      "y": 1
+    },
+    {
+      "x": 0.62,
+      "y": 1
+    },
+    {
+      "x": 0,
+      "y": 0.08,
+      "width": 1,
+      "height": 1,
+      "sill": 0.3
+    },
+    {
+      "x": 0.8,
+      "y": 1,
+      "width": 0.5,
+      "height": 0.5,
+      "sill": 1.8
+    },
+    {
+      "x": 0.92,
+      "y": 0.86,
+      "width": 0.5,
+      "height": 0.5,
+      "sill": 1.8
+    },
+    {
+      "x": 0.92,
+      "y": 0.95,
+      "width": 0.5,
+      "height": 0.5,
+      "sill": 1.8
+    }
+  ],
+  "stair": {
+    "x": 0.88,
+    "y": 0.2,
+    "w": 0.1,
+    "d": 0.16
+  },
+  "columns": "auto"
+}

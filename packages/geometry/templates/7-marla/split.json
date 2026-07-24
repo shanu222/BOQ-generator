@@ -1,0 +1,286 @@
+{
+  "id": "7-marla-split",
+  "plotKey": "7-marla",
+  "name": "Split Living",
+  "tagline": "Separate drawing & dining · side stair",
+  "style": "modern",
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "hasPorch": true,
+  "hasStair": true,
+  "features": [
+    "Drawing Room",
+    "Dining",
+    "Side Stair",
+    "3 Bedrooms",
+    "2 Washrooms"
+  ],
+  "partitions": [
+    {
+      "x1": 0,
+      "y1": 0.08,
+      "x2": 0.7,
+      "y2": 0.08,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.7,
+      "y1": 0,
+      "x2": 0.7,
+      "y2": 0.34,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.35,
+      "y1": 0.08,
+      "x2": 0.35,
+      "y2": 0.34,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0,
+      "y1": 0.34,
+      "x2": 1,
+      "y2": 0.34,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.5,
+      "y1": 0.34,
+      "x2": 0.5,
+      "y2": 0.66,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0,
+      "y1": 0.66,
+      "x2": 1,
+      "y2": 0.66,
+      "thickness": 0.23,
+      "structuralType": "load-bearing"
+    },
+    {
+      "x1": 0.33,
+      "y1": 0.66,
+      "x2": 0.33,
+      "y2": 1
+    },
+    {
+      "x1": 0.66,
+      "y1": 0.66,
+      "x2": 0.66,
+      "y2": 1
+    },
+    {
+      "x1": 0.75,
+      "y1": 0.34,
+      "x2": 0.75,
+      "y2": 0.5
+    },
+    {
+      "x1": 0.75,
+      "y1": 0.5,
+      "x2": 1,
+      "y2": 0.5
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Porch",
+      "type": "porch",
+      "x": 0,
+      "y": 0,
+      "w": 0.7,
+      "h": 0.08
+    },
+    {
+      "name": "Stair Hall",
+      "type": "stair",
+      "x": 0.7,
+      "y": 0,
+      "w": 0.3,
+      "h": 0.34
+    },
+    {
+      "name": "Drawing Room",
+      "type": "drawing-room",
+      "x": 0,
+      "y": 0.08,
+      "w": 0.35,
+      "h": 0.26
+    },
+    {
+      "name": "Dining",
+      "type": "dining",
+      "x": 0.35,
+      "y": 0.08,
+      "w": 0.35,
+      "h": 0.26
+    },
+    {
+      "name": "Bedroom 1",
+      "type": "bedroom",
+      "x": 0,
+      "y": 0.34,
+      "w": 0.5,
+      "h": 0.32
+    },
+    {
+      "name": "Kitchen",
+      "type": "kitchen",
+      "x": 0.5,
+      "y": 0.34,
+      "w": 0.5,
+      "h": 0.32,
+      "cutout": {
+        "x": 0.75,
+        "y": 0.34,
+        "w": 0.25,
+        "h": 0.16
+      }
+    },
+    {
+      "name": "Store",
+      "type": "store",
+      "x": 0.75,
+      "y": 0.34,
+      "w": 0.25,
+      "h": 0.16
+    },
+    {
+      "name": "Bedroom 2",
+      "type": "bedroom",
+      "x": 0,
+      "y": 0.66,
+      "w": 0.33,
+      "h": 0.34
+    },
+    {
+      "name": "Bedroom 3",
+      "type": "bedroom",
+      "x": 0.33,
+      "y": 0.66,
+      "w": 0.33,
+      "h": 0.34
+    },
+    {
+      "name": "Washroom 1",
+      "type": "washroom",
+      "x": 0.66,
+      "y": 0.66,
+      "w": 0.34,
+      "h": 0.17
+    },
+    {
+      "name": "Washroom 2",
+      "type": "washroom",
+      "x": 0.66,
+      "y": 0.83,
+      "w": 0.34,
+      "h": 0.17
+    }
+  ],
+  "doors": [
+    {
+      "x": 0.35,
+      "y": 0.08,
+      "width": 1
+    },
+    {
+      "x": 0.35,
+      "y": 0.2
+    },
+    {
+      "x": 0.7,
+      "y": 0.15
+    },
+    {
+      "x": 0.25,
+      "y": 0.34
+    },
+    {
+      "x": 0.62,
+      "y": 0.34
+    },
+    {
+      "x": 0.75,
+      "y": 0.42,
+      "width": 0.75
+    },
+    {
+      "x": 0.16,
+      "y": 0.66
+    },
+    {
+      "x": 0.45,
+      "y": 0.66
+    },
+    {
+      "x": 0.66,
+      "y": 0.74,
+      "width": 0.75
+    },
+    {
+      "x": 0.66,
+      "y": 0.9,
+      "width": 0.75
+    }
+  ],
+  "windows": [
+    {
+      "x": 0,
+      "y": 0.2,
+      "width": 1.4
+    },
+    {
+      "x": 0.5,
+      "y": 0.08
+    },
+    {
+      "x": 1,
+      "y": 0.15
+    },
+    {
+      "x": 0,
+      "y": 0.5
+    },
+    {
+      "x": 1,
+      "y": 0.55
+    },
+    {
+      "x": 0.16,
+      "y": 1
+    },
+    {
+      "x": 0.5,
+      "y": 1
+    },
+    {
+      "x": 1,
+      "y": 0.74,
+      "width": 0.55,
+      "height": 0.55,
+      "sill": 1.8
+    },
+    {
+      "x": 1,
+      "y": 0.9,
+      "width": 0.55,
+      "height": 0.55,
+      "sill": 1.8
+    }
+  ],
+  "stair": {
+    "x": 0.72,
+    "y": 0.05,
+    "w": 0.24,
+    "d": 0.25
+  },
+  "columns": "auto"
+}
