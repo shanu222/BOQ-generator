@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
+    "build:deps": "npm run build -w @boq/shared && npm run build -w @boq/engine",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",

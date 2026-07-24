@@ -15,6 +15,7 @@
     "templates:sync": "npm run templates:sync -w @boq/geometry",
     "build": "npm run build -w @boq/shared && npm run build -w @boq/engine && npm run build -w @boq/geometry && npm run build -w @boq/api && npm run build -w @boq/web",
     "build:web": "npm run templates:sync -w @boq/geometry && npm run build -w @boq/web",
+    "build:api": "npm run build -w @boq/shared && npm run build -w @boq/engine && npm run prisma:generate -w @boq/api && npm run build -w @boq/api",
     "type-check": "npm run type-check -w @boq/shared && npm run type-check -w @boq/engine && npm run type-check -w @boq/geometry && npm run type-check -w @boq/web",
     "lint": "npm run lint -w @boq/web",
     "db:generate": "npm run prisma:generate -w @boq/api",

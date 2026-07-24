@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import type { EstimateResult, ProjectState } from '@boq/shared';
+import type { BOQItem, EstimateResult, MaterialLine, ProjectState } from '@boq/shared';
 
 @Injectable()
 export class ReportsService {
@@ -88,7 +88,7 @@ export class ReportsService {
         ),
       }),
       ...result.boq.map(
-        (item) =>
+        (item: BOQItem) =>
           new TableRow({
             children: [
               item.itemNo,
@@ -120,7 +120,8 @@ export class ReportsService {
             new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: boqRows }),
             header('Material Takeoff'),
             ...result.materials.map(
-              (m) => new Paragraph(`${m.name}: ${m.quantity} ${m.unit} @ ${m.rate} = ${money(m.amount)}`),
+              (m: MaterialLine) =>
+                new Paragraph(`${m.name}: ${m.quantity} ${m.unit} @ ${m.rate} = ${money(m.amount)}`),
             ),
             header('Rate Analysis Notes'),
             new Paragraph(

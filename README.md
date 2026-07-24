@@ -64,7 +64,10 @@ The production app is **web-only**. NestJS is not required for BOQ, planner, or 
 4. Node.js 20+ (see `.nvmrc`).
 5. Leave `NEXT_PUBLIC_API_URL` unset for a fully offline production build.
 
-Optional: host `apps/api` on Railway/Render/Fly and set `NEXT_PUBLIC_API_URL` for rates sync.
+Optional: host `apps/api` as a **separate** Vercel project with Root Directory `apps/api`
+(uses `apps/api/vercel.json` to build `@boq/shared` + `@boq/engine` first). Set `DATABASE_URL`
+and `CORS_ORIGIN` to your web domain. NestJS on Vercel is best-effort serverless; for a
+long-running API prefer Railway/Render/Fly.
 
 ## Dual measurement workflows
 

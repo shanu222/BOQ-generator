@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ProjectState } from '@boq/shared';
+import type { MaterialLine, ProjectState } from '@boq/shared';
 import { answerEngineeringQuestion, calculateEstimate } from '@boq/engine';
 
 @Injectable()
@@ -19,8 +19,8 @@ export class CalculateService {
       warnings: result.warnings,
       topMaterials: result.materials
         .slice()
-        .sort((a, b) => b.amount - a.amount)
-        .map((m) => ({ name: m.name, quantity: m.quantity, unit: m.unit })),
+        .sort((a: MaterialLine, b: MaterialLine) => b.amount - a.amount)
+        .map((m: MaterialLine) => ({ name: m.name, quantity: m.quantity, unit: m.unit })),
     });
     return { answer, warnings: result.warnings };
   }

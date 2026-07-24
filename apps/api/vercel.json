@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nestjs",
+  "installCommand": "cd ../.. && npm install",
+  "buildCommand": "cd ../.. && npm run build -w @boq/shared && npm run build -w @boq/engine && npm run prisma:generate -w @boq/api && npm run build -w @boq/api"
+}

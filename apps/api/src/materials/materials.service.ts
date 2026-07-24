@@ -39,11 +39,12 @@ export class MaterialsService {
     } catch {
       /* fallback */
     }
-    const all = DEFAULT_MATERIALS.map((m) => ({ ...m }));
+    const all = DEFAULT_MATERIALS.map((m: (typeof DEFAULT_MATERIALS)[number]) => ({ ...m }));
     if (!q) return all;
     const s = q.toLowerCase();
     return all.filter(
-      (m) => m.name.toLowerCase().includes(s) || m.category.toLowerCase().includes(s),
+      (m: (typeof DEFAULT_MATERIALS)[number]) =>
+        m.name.toLowerCase().includes(s) || m.category.toLowerCase().includes(s),
     );
   }
 
@@ -63,7 +64,7 @@ export class MaterialsService {
     } catch {
       /* fallback */
     }
-    return DEFAULT_LABOUR.map((l) => ({ ...l }));
+    return DEFAULT_LABOUR.map((l: (typeof DEFAULT_LABOUR)[number]) => ({ ...l }));
   }
 
   async listEquipment() {
@@ -82,7 +83,7 @@ export class MaterialsService {
     } catch {
       /* fallback */
     }
-    return DEFAULT_EQUIPMENT.map((e) => ({ ...e }));
+    return DEFAULT_EQUIPMENT.map((e: (typeof DEFAULT_EQUIPMENT)[number]) => ({ ...e }));
   }
 
   async fullDatabase() {
