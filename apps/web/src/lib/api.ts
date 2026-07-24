@@ -1,18 +1,16 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+import { apiRequest, API_BASE, isApiConfigured } from '@/lib/api-client';
+
+export { API_BASE, isApiConfigured };
 
 export async function fetchCostDatabase(): Promise<{
   materials?: unknown[];
   labour?: unknown[];
   equipment?: unknown[];
+  region?: string;
 } | null> {
-  try {
-    const res = await fetch(`${API_BASE}/cost-database`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
+  return apiRequest('/cost-database', { soft: true, timeoutMs: 8000 });
+}
+
+export async function fetchHealth(): Promise<{ status: string; service?: string } | null> {
+  return apiRequest('/health', { soft: true, timeoutMs: 4000 });
 }

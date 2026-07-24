@@ -56,18 +56,36 @@ Set `NEXT_PUBLIC_API_URL` only if the API is hosted separately (see `apps/web/.e
 
 ## Deploy on Vercel
 
-The production app is **web-only**. NestJS is not required for BOQ, planner, or client-side Excel/Word/PDF reports.
+Use **two** Vercel projects from the same repo (web is required; API is optional for Rates sync).
+
+### Web project (`apps/web`)
 
 1. Import this repository in [Vercel](https://vercel.com).
-2. Set **Root Directory** to `apps/web` (required for this monorepo).
-3. Install / Build commands are already in `apps/web/vercel.json` (`npm install` + `npm run build:web` from the repo root).
+2. Set **Root Directory** to `apps/web`.
+3. Install / Build commands come from `apps/web/vercel.json` (`npm install` + `npm run build:web` from the repo root).
 4. Node.js 20+ (see `.nvmrc`).
-5. Leave `NEXT_PUBLIC_API_URL` unset for a fully offline production build.
+5. Environment variable (optional — enables Rates → Sync API):
 
-Optional: host `apps/api` as a **separate** Vercel project with Root Directory `apps/api`
-(uses `apps/api/vercel.json` to build `@boq/shared` + `@boq/engine` first). Set `DATABASE_URL`
-and `CORS_ORIGIN` to your web domain. NestJS on Vercel is best-effort serverless; for a
-long-running API prefer Railway/Render/Fly.
+   | Variable | Example |
+   |----------|---------|
+   | `NEXT_PUBLIC_API_URL` | `https://boq-generator-api-5nz3.vercel.app/api` |
+
+   Leave unset for a fully offline production build (BOQ, planner, MTO, Report Center still work).
+
+### API project (`apps/api`) — optional
+
+1. Create a **second** Vercel project from the same repo.
+2. Set **Root Directory** to `apps/api` (`apps/api/vercel.json` builds shared + engine + Prisma + Nest).
+3. Environment variables:
+
+   | Variable | Notes |
+   |----------|--------|
+   | `CORS_ORIGIN` | Comma-separated web origins, e.g. `https://your-web.vercel.app`. If unset, localhost + `*.vercel.app` are allowed. |
+   | `DATABASE_URL` | Optional PostgreSQL. Without it, cost-database returns embedded defaults. |
+
+4. Confirm `GET /` returns service JSON and `GET /api/health` returns `ok`.
+
+NestJS on Vercel is best-effort serverless; for a long-running API prefer Railway/Render/Fly.
 
 ## Dual measurement workflows
 

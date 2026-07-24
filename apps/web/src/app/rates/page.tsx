@@ -5,7 +5,7 @@ import { RefreshCw, Download } from 'lucide-react';
 import type { EquipmentRate, LabourRate, MaterialRate } from '@boq/shared';
 import { createDefaultProject } from '@boq/engine';
 import { useProjectStore } from '@/store/project-store';
-import { fetchCostDatabase } from '@/lib/api';
+import { fetchCostDatabase, isApiConfigured } from '@/lib/api';
 import { formatPKR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -85,9 +85,18 @@ export default function RatesPage() {
   async function syncFromApi() {
     setSyncing(true);
     setSyncStatus(null);
+    if (!isApiConfigured()) {
+      setSyncStatus(
+        'API URL not set — using local engine defaults. Set NEXT_PUBLIC_API_URL on the web project to enable sync.',
+      );
+      setSyncing(false);
+      return;
+    }
     const data = await fetchCostDatabase();
     if (!data) {
-      setSyncStatus('API offline — using local engine defaults.');
+      setSyncStatus(
+        'Could not reach the cost-database API (network, CORS, or timeout). Using local engine defaults.',
+      );
       setSyncing(false);
       return;
     }
