@@ -581,6 +581,7 @@ export function calcRoofing(entry: MeasurementEntry, _ctx: CalcContext): ModuleO
   out.materials.push(
     mat('cement', 'Ordinary Portland Cement', 'cement', 'bag', 0.15 * a, entry.id),
     mat('sand', 'Fine Sand (Chenab / Ravi)', 'sand', 'm3', 0.02 * a, entry.id),
+    mat('roof-insulation', 'Roof Thermal Insulation', 'roofing', 'm2', a, entry.id),
     mat('waterproofing', 'Bituminous Waterproofing Membrane', 'waterproofing', 'm2', a * 1.1, entry.id),
   );
   out.labour.push({ labourId: 'roofing-labour', quantity: a });
@@ -755,4 +756,119 @@ export function calcWaterTank(entry: MeasurementEntry, _ctx: CalcContext): Modul
 export function calcSepticTank(entry: MeasurementEntry, ctx: CalcContext): ModuleOutput {
   // Similar to water tank with brick/RCC walls option — use RCC path
   return calcWaterTank({ ...entry, label: entry.label || 'Septic Tank' }, ctx);
+}
+
+/** Area-scaled complete electrical package (reference: 2,025 sft premium house) */
+export function calcElectricalWorks(entry: MeasurementEntry, _ctx: CalcContext): ModuleOutput {
+  const areaSft = num(entry.fields.areaSft, 2025);
+  const s = areaSft / 2025;
+  const out = emptyOutput();
+  const conduitRm = 1612 * s;
+  const lightPoints = Math.round(59 * s);
+  const fans = Math.max(1, Math.round(10 * s));
+  const sockets = Math.max(4, Math.round(35 * s));
+  const switches = Math.max(4, Math.round(26 * s));
+
+  out.quantities.push(qty(entry, 'Electrical installation', 'job', 1, 'Electrical'));
+  out.materials.push(
+    mat('pvc-conduit-25', 'PVC Conduit 25mm', 'electrical', 'rm', conduitRm * 0.75, entry.id),
+    mat('pvc-conduit-32', 'PVC Conduit 32mm', 'electrical', 'rm', conduitRm * 0.25, entry.id),
+    mat('fan-box', 'Ceiling Fan Hook Box', 'electrical', 'nos', fans + 2, entry.id),
+    mat('db-box', 'Distribution Board', 'electrical', 'nos', 1, entry.id),
+    mat('led-light', 'LED Lights', 'electrical', 'nos', Math.round(lightPoints * 0.6), entry.id),
+    mat('ceiling-light', 'Ceiling Light Fittings', 'electrical', 'nos', Math.round(lightPoints * 0.4), entry.id),
+    mat('ceiling-fan', 'Ceiling Fans', 'electrical', 'nos', fans, entry.id),
+    mat('exhaust-fan', 'Exhaust Fans', 'electrical', 'nos', Math.max(2, Math.round(6 * s)), entry.id),
+    mat('socket-5a', 'Power Sockets', 'electrical', 'nos', sockets, entry.id),
+    mat('switch-1way', 'Switch Boards', 'electrical', 'nos', switches, entry.id),
+    mat('copper-wire-1.5', '1.5mm² Wire', 'electrical', 'rm', 1180 * s, entry.id),
+    mat('copper-wire-2.5', '2.5mm² Wire', 'electrical', 'rm', 324 * s, entry.id),
+    mat('copper-wire-4', '4mm² Wire', 'electrical', 'rm', 140 * s, entry.id),
+    mat('copper-cable-16', '16mm² 4-Core Cable', 'electrical', 'rm', 70 * s, entry.id),
+  );
+  out.labour.push(
+    { labourId: 'electrical-labour-lump', quantity: 1 * s },
+    { labourId: 'electrician-unit', quantity: Math.round(40 * s) },
+  );
+  out.boq.push({
+    entryId: entry.id,
+    moduleId: entry.moduleId,
+    description: entry.label || 'Complete Electrical Works',
+    specification: 'Conduits, wiring, DB, lights, fans, switches & sockets',
+    unit: 'job',
+    quantity: 1,
+    category: 'Electrical',
+    remarks: `Scaled for ${Math.round(areaSft)} sft covered area`,
+  });
+  return out;
+}
+
+/** Area-scaled plumbing rough-in + fixtures piping */
+export function calcPlumbingWorks(entry: MeasurementEntry, _ctx: CalcContext): ModuleOutput {
+  const areaSft = num(entry.fields.areaSft, 2025);
+  const bathrooms = Math.max(2, Math.round(num(entry.fields.bathrooms, areaSft / 506)));
+  const s = areaSft / 2025;
+  const out = emptyOutput();
+
+  out.quantities.push(qty(entry, 'Plumbing installation', 'job', 1, 'Plumbing'));
+  out.materials.push(
+    mat('upvc-pipe-1', 'Cold/Hot Water UPVC', 'plumbing', 'rm', 290 * s, entry.id),
+    mat('pprc-pipe-25', 'PPRC Pipe 25mm', 'plumbing', 'rm', 42 * s, entry.id),
+    mat('pvc-pipe-4', 'Drainage PVC 4"', 'plumbing', 'rm', 203 * s, entry.id),
+    mat('sewer-pipe-6', 'Sewer Pipe 6"', 'plumbing', 'rm', 81 * s, entry.id),
+    mat('floor-trap', 'Floor Drains', 'plumbing', 'nos', Math.max(4, Math.round(7 * s)), entry.id),
+    mat('water-pump', 'Booster Pump', 'plumbing', 'nos', 1, entry.id),
+    mat('submersible-pump', 'Submersible Pump', 'plumbing', 'nos', 1, entry.id),
+    mat('water-tank-plastic', 'Overhead Water Tank', 'plumbing', 'nos', 1, entry.id),
+  );
+  out.labour.push(
+    { labourId: 'plumbing-labour-lump', quantity: 1 * s },
+    { labourId: 'plumber-unit', quantity: Math.round(bathrooms * 8 * s) },
+  );
+  out.boq.push({
+    entryId: entry.id,
+    moduleId: entry.moduleId,
+    description: entry.label || 'Plumbing Works',
+    specification: 'Water supply, drainage, sewerage, pumps & tanks',
+    unit: 'job',
+    quantity: 1,
+    category: 'Plumbing',
+    remarks: `${bathrooms} bathrooms allowance`,
+  });
+  return out;
+}
+
+/** Bathroom, kitchen & accessory fixtures */
+export function calcFixtures(entry: MeasurementEntry, _ctx: CalcContext): ModuleOutput {
+  const bathrooms = Math.max(2, Math.round(num(entry.fields.bathrooms, 4)));
+  const kitchens = Math.max(1, Math.round(num(entry.fields.kitchens, 2)));
+  const wardrobes = Math.max(1, Math.round(num(entry.fields.wardrobes, 3)));
+  const out = emptyOutput();
+
+  out.quantities.push(qty(entry, 'Fixtures & fittings', 'job', 1, 'Fixtures'));
+  out.materials.push(
+    mat('wc-set', 'Water Closet', 'plumbing', 'set', bathrooms, entry.id),
+    mat('wash-basin', 'Vanity Basin', 'plumbing', 'set', bathrooms, entry.id),
+    mat('mixer-tap', 'Basin Mixer', 'plumbing', 'nos', bathrooms, entry.id),
+    mat('shower-set', 'Shower Set', 'plumbing', 'set', bathrooms, entry.id),
+    mat('kitchen-sink', 'Kitchen Sink', 'plumbing', 'nos', kitchens, entry.id),
+    mat('mixer-tap', 'Sink Mixer', 'plumbing', 'nos', kitchens, entry.id),
+    mat('geyser', 'Geyser', 'plumbing', 'nos', 1, entry.id),
+    mat('wardrobe-unit', 'Wardrobes', 'wood', 'nos', wardrobes, entry.id),
+    mat('kitchen-cabinet', 'Kitchen Cabinets', 'wood', 'nos', kitchens, entry.id),
+    mat('main-gate', 'Main Gate', 'miscellaneous', 'nos', 1, entry.id),
+    mat('railings', 'Staircase / Terrace Railing', 'miscellaneous', 'rm', 60, entry.id),
+  );
+  out.labour.push({ labourId: 'carpenter-labour', quantity: wardrobes + kitchens + 2 });
+  out.boq.push({
+    entryId: entry.id,
+    moduleId: entry.moduleId,
+    description: entry.label || 'Fittings & Fixtures',
+    specification: 'Bathroom, kitchen, wardrobes, gate & railings',
+    unit: 'job',
+    quantity: 1,
+    category: 'Fixtures',
+    remarks: '',
+  });
+  return out;
 }

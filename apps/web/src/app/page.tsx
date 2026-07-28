@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Calculator, FileText, ClipboardList } from 'lucide-react';
+import { buildProjectCostSummary } from '@boq/engine';
 import { useEstimate } from '@/hooks/use-estimate';
 import { useProjectStore } from '@/store/project-store';
 import { formatPKR, formatDate } from '@/lib/format';
@@ -20,6 +22,13 @@ export default function DashboardPage() {
   const calculator = useProjectStore((s) => s.calculator);
   const recentReports = useProjectStore((s) => s.recentReports);
   const hydrated = useProjectStore((s) => s.hydrated);
+
+  const workCategories = useMemo(
+    () => buildProjectCostSummary(project, estimate).workCategories ?? [],
+    [project, estimate],
+  );
+  const costPerSft =
+    calculator.areaSft > 0 ? Math.round(estimate.costs.grandTotal / calculator.areaSft) : 0;
 
   if (!hydrated) {
     return (
@@ -79,9 +88,44 @@ export default function DashboardPage() {
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
               {formatPKR(estimate.costs.grandTotal)}
             </p>
+            {costPerSft > 0 && (
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                {costPerSft.toLocaleString('en-PK')} PKR / sft
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {workCategories.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cost breakdown</CardTitle>
+            <CardDescription>
+              Pakistan residential work packages (Foundation, MEP, Finishing)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {workCategories.map((cat) => (
+              <div key={cat.id} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{cat.label}</span>
+                  <span className="tabular-nums">{formatPKR(cat.subtotal)}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--accent)]"
+                    style={{ width: `${Math.min(cat.percentOfTotal, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-[var(--muted-foreground)]">
+                  {cat.percentOfTotal}% of total
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Link href="/calculator">

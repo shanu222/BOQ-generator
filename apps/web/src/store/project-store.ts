@@ -115,9 +115,9 @@ function withHistory(
 }
 
 const defaultCalculator = (): CalculatorState => ({
-  mode: 'simple',
-  areaSft: 1200,
-  costPerSft: 4500,
+  mode: 'advanced',
+  areaSft: 2025,
+  costPerSft: 4490,
   durationMonths: 6,
   calculated: false,
 });

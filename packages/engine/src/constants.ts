@@ -2,15 +2,15 @@
 
 export const STEEL_DENSITY = 7850; // kg/m³
 
-/** Approximate steel content kg per m³ of RCC by element */
+/** Approximate steel content kg per m³ of RCC by element (premium residential) */
 export const STEEL_KG_PER_M3: Record<string, number> = {
-  footing: 80,
-  raft: 100,
-  column: 120,
-  beam: 110,
-  slab: 90,
-  staircase: 100,
-  general: 100,
+  footing: 95,
+  raft: 110,
+  column: 135,
+  beam: 125,
+  slab: 105,
+  staircase: 115,
+  general: 110,
 };
 
 /** Cement bags (50kg) per m³ for common mixes */

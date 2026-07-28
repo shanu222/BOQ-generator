@@ -8,3 +8,4 @@ export * from './defaults';
 export * from './cost-classification';
 export * from './rate-audit';
 export * from './area-based';
+export * from './residential-profile';

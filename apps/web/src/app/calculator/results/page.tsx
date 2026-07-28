@@ -223,7 +223,6 @@ export default function CalculatorResultsPage() {
         <CardContent className="space-y-3 text-sm">
           {(
             [
-              ['Design & Engineering', view.designEngineering],
               ['Labour', view.labour],
               ['Material', view.material],
               ['Equipment', view.equipment],

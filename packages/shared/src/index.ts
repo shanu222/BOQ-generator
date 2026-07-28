@@ -163,9 +163,37 @@ export interface ProjectCostSummary {
   finishing: CostGroupSummary;
   external: CostGroupSummary;
   miscellaneous: CostGroupSummary;
+  /** Zameen-style work packages for dashboard / charts */
+  workCategories?: WorkCategorySummary[];
   directSubtotal: number;
   grandTotal: number;
 }
+
+/** Pakistan residential work breakdown (Zameen-aligned presentation) */
+export type WorkCategoryId =
+  | 'foundation-structure'
+  | 'electrical'
+  | 'plumbing'
+  | 'wood-metal-tile'
+  | 'fittings-fixtures';
+
+export interface WorkCategorySummary {
+  id: WorkCategoryId;
+  label: string;
+  material: number;
+  labour: number;
+  equipment: number;
+  subtotal: number;
+  percentOfTotal: number;
+}
+
+export const WORK_CATEGORY_LABELS: Record<WorkCategoryId, string> = {
+  'foundation-structure': 'Foundation & Structure',
+  electrical: 'Electrical Works',
+  plumbing: 'Plumbing Works',
+  'wood-metal-tile': 'Wood, Metal & Tile Works',
+  'fittings-fixtures': 'Fittings & Fixtures',
+};
 
 export type ModuleId =
   | 'excavation'
@@ -191,7 +219,10 @@ export type ModuleId =
   | 'ceiling'
   | 'steel-bbs'
   | 'water-tank'
-  | 'septic-tank';
+  | 'septic-tank'
+  | 'electrical-works'
+  | 'plumbing-works'
+  | 'fixtures';
 
 export interface FieldDef {
   key: string;
@@ -395,12 +426,12 @@ export interface ChatMessage {
 }
 
 export const DEFAULT_RATE_FACTORS: RateAnalysisFactors = {
-  transportationPercent: 3,
-  loadingUnloadingPercent: 1.5,
-  wastePercent: 5,
-  overheadPercent: 8,
-  contractorProfitPercent: 10,
-  contingencyPercent: 5,
+  transportationPercent: 2,
+  loadingUnloadingPercent: 1,
+  wastePercent: 3,
+  overheadPercent: 5,
+  contractorProfitPercent: 6,
+  contingencyPercent: 3,
   taxPercent: 0,
 };
 

@@ -358,6 +358,39 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
       { key: 'mix', label: 'Mix', type: 'select', options: mixOptions, defaultValue: '1:2:4' },
     ],
   },
+  {
+    id: 'electrical-works',
+    name: 'Electrical Works',
+    description: 'Complete electrical installation scaled to covered area',
+    category: 'MEP',
+    icon: 'zap',
+    fields: [
+      { key: 'areaSft', label: 'Covered Area', unit: 'sft', type: 'number', min: 100, required: true },
+    ],
+  },
+  {
+    id: 'plumbing-works',
+    name: 'Plumbing Works',
+    description: 'Water supply, drainage, sewerage & pumps',
+    category: 'MEP',
+    icon: 'droplet',
+    fields: [
+      { key: 'areaSft', label: 'Covered Area', unit: 'sft', type: 'number', min: 100, required: true },
+      { key: 'bathrooms', label: 'Bathrooms', unit: 'nos', type: 'number', min: 1, defaultValue: 4 },
+    ],
+  },
+  {
+    id: 'fixtures',
+    name: 'Fittings & Fixtures',
+    description: 'Bathroom, kitchen, wardrobes & accessories',
+    category: 'Fixtures',
+    icon: 'bath',
+    fields: [
+      { key: 'bathrooms', label: 'Bathrooms', unit: 'nos', type: 'number', min: 1, defaultValue: 4 },
+      { key: 'kitchens', label: 'Kitchens', unit: 'nos', type: 'number', min: 1, defaultValue: 2 },
+      { key: 'wardrobes', label: 'Wardrobes', unit: 'nos', type: 'number', min: 0, defaultValue: 3 },
+    ],
+  },
 ];
 
 type Calculator = (entry: MeasurementEntry, ctx: CalcContext) => ModuleOutput;
@@ -387,6 +420,9 @@ const CALCULATORS: Record<ModuleId, Calculator> = {
   'steel-bbs': M.calcSteelBBS,
   'water-tank': M.calcWaterTank,
   'septic-tank': M.calcSepticTank,
+  'electrical-works': M.calcElectricalWorks,
+  'plumbing-works': M.calcPlumbingWorks,
+  fixtures: M.calcFixtures,
 };
 
 export function getModule(id: ModuleId): ModuleDefinition | undefined {

@@ -3,9 +3,12 @@
  * Converts covered area (sft) into measurement entries for the existing
  * calculateEstimate() pipeline — does not replace module formulas.
  */
-import type { EstimateResult, MeasurementEntry, ProjectState } from '@boq/shared';
+import type { EstimateResult, MeasurementEntry, ProjectState, WorkCategoryId } from '@boq/shared';
+import { WORK_CATEGORY_LABELS } from '@boq/shared';
 import { createEntry, calculateEstimate } from './calculate';
 import { round } from './constants';
+import { deriveResidentialProfile } from './residential-profile';
+import { classifyWorkCategory } from './cost-classification';
 
 export const SFT_TO_M2 = 0.092903045;
 export const M2_TO_SFT = 1 / SFT_TO_M2;
@@ -35,27 +38,32 @@ export const AREA_ADVANCE_MATERIALS = [
 ] as const;
 
 /**
- * Typical Pakistan single-storey covered-area thumb rules → module entries.
- * Geometry is not used; dimensions are derived from sqrt(area).
+ * Typical Pakistan residential thumb rules → module entries.
+ * Geometry is derived from sqrt(area); MEP scaled from room profile.
  */
 export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[] {
-  const area = Math.max(areaSft, 100);
-  const areaM2 = area * SFT_TO_M2;
+  const profile = deriveResidentialProfile(areaSft);
+  const { areaM2, doorCount, windowAreaM2 } = profile;
   const side = Math.sqrt(areaM2);
   const L = round(side, 2);
   const W = round(side, 2);
-  const H = 3.05; // ~10 ft storey
+  const H = 3.05;
   const perimeter = 2 * (L + W);
-
-  const footingWidth = 0.9;
-  const footingLen = round(perimeter, 2);
-  const doorNos = Math.max(4, Math.round(area / 200));
-  const windowArea = round(areaM2 * 0.15, 2);
   const wallThk = 0.23;
-  const wallAreaGross = perimeter * H;
-  const openings = doorNos * 2.1 + windowArea;
-  const plasterArea = round(Math.max(wallAreaGross * 2 - openings, areaM2 * 2.5), 2);
-  const paintArea = round(plasterArea * 1.05 + areaM2, 2);
+
+  const doorOpeningVol = doorCount * 0.9 * 2.1 * wallThk;
+  const windowOpeningVol = windowAreaM2 * wallThk;
+  const openingsVol = round(doorOpeningVol + windowOpeningVol, 3);
+
+  const externalWallLen = perimeter;
+  const internalWallLen = round(perimeter * 0.85, 2);
+  const plasterArea = round(
+    (externalWallLen + internalWallLen) * H * 2 - windowAreaM2 - doorCount * 0.9 * 2.1,
+    2,
+  );
+  const paintWallLen = round(profile.paintAreaM2 / H, 2);
+  const ceilingArea = round(areaM2 * profile.ceilingCoverage, 2);
+  const ceilSide = Math.sqrt(ceilingArea);
 
   let order = 0;
   const entries: MeasurementEntry[] = [];
@@ -71,8 +79,8 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
   push(
     'foundation',
     {
-      length: footingLen,
-      width: footingWidth,
+      length: round(perimeter, 2),
+      width: 0.9,
       depth: 1.2,
       pccThickness: 0.075,
       rccThickness: 0.23,
@@ -88,7 +96,7 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
       length: 0.23,
       width: 0.23,
       height: H,
-      quantity: Math.max(8, Math.round(area / 120)),
+      quantity: Math.max(8, Math.round(profile.areaSft / 120)),
       mix: '1:1.5:3',
     },
     '[Area] RCC Columns',
@@ -99,7 +107,7 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
     {
       width: 0.23,
       depth: 0.38,
-      length: perimeter * 0.55,
+      length: perimeter * 0.75,
       quantity: 1,
       mix: '1:2:4',
     },
@@ -121,13 +129,25 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
   push(
     'masonry',
     {
-      length: perimeter,
+      length: externalWallLen,
       height: H,
       thickness: wallThk,
       quantity: 1,
-      openings: openings,
+      openings: openingsVol * 0.55,
     },
-    '[Area] External / internal brickwork',
+    '[Area] External brickwork',
+  );
+
+  push(
+    'masonry',
+    {
+      length: internalWallLen,
+      height: H,
+      thickness: wallThk,
+      quantity: 1,
+      openings: openingsVol * 0.45,
+    },
+    '[Area] Internal partition walls',
   );
 
   push(
@@ -146,17 +166,27 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
   push(
     'floor-tiles',
     {
-      length: L,
-      width: W,
+      length: Math.sqrt(profile.floorTileAreaM2),
+      width: Math.sqrt(profile.floorTileAreaM2),
       quantity: 1,
     },
     '[Area] Floor tiling',
   );
 
   push(
+    'wall-tiles',
+    {
+      length: Math.sqrt(profile.wallTileAreaM2),
+      height: 1,
+      quantity: 1,
+    },
+    '[Area] Wall tiles (bath & kitchen)',
+  );
+
+  push(
     'paint',
     {
-      length: paintArea / H,
+      length: paintWallLen,
       height: H,
       coats: 2,
       openings: 0,
@@ -170,7 +200,7 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
     {
       width: 0.9,
       height: 2.1,
-      quantity: doorNos,
+      quantity: doorCount,
     },
     '[Area] Doors',
   );
@@ -178,22 +208,12 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
   push(
     'windows',
     {
-      width: Math.sqrt(windowArea) || 1.2,
-      height: Math.sqrt(windowArea) || 1.2,
-      quantity: 1,
-    },
-    '[Area] Windows',
-  );
-
-  // Force window area via width*height*qty ≈ windowArea
-  const last = entries[entries.length - 1];
-  if (last.moduleId === 'windows') {
-    last.fields = {
-      width: round(windowArea / 1.2, 2),
+      width: round(windowAreaM2 / 1.2, 2),
       height: 1.2,
       quantity: 1,
-    };
-  }
+    },
+    '[Area] Aluminium windows',
+  );
 
   push(
     'waterproofing',
@@ -206,13 +226,45 @@ export function buildEntriesFromCoveredArea(areaSft: number): MeasurementEntry[]
   );
 
   push(
-    'ceiling',
+    'roofing',
     {
       length: L,
       width: W,
       quantity: 1,
     },
-    '[Area] Ceiling (optional allowance)',
+    '[Area] Roof insulation & finish',
+  );
+
+  push(
+    'ceiling',
+    {
+      length: ceilSide,
+      width: ceilSide,
+      quantity: 1,
+    },
+    '[Area] False ceiling',
+  );
+
+  push(
+    'electrical-works',
+    { areaSft: profile.areaSft },
+    '[Area] Electrical works',
+  );
+
+  push(
+    'plumbing-works',
+    { areaSft: profile.areaSft, bathrooms: profile.bathrooms },
+    '[Area] Plumbing works',
+  );
+
+  push(
+    'fixtures',
+    {
+      bathrooms: profile.bathrooms,
+      kitchens: profile.kitchens,
+      wardrobes: profile.wardrobeCount,
+    },
+    '[Area] Fittings & fixtures',
   );
 
   return entries;
@@ -239,13 +291,11 @@ export interface AreaEstimatePresentation {
   costPerSft: number;
   durationMonths: number;
   mode: CalculatorMode;
-  /** Simple mode headline = area × rate; Advanced = engine grand total */
   estimatedCost: number;
   engineGrandTotal: number;
   materials: AreaMaterialRow[];
   totalMaterialCost: number;
   works: AreaWorkRow[];
-  designEngineering: number;
   labour: number;
   material: number;
   equipment: number;
@@ -280,6 +330,15 @@ function sumBoqByCategory(estimate: EstimateResult, match: (cat: string, desc: s
   );
 }
 
+function sumBoqByModule(estimate: EstimateResult, moduleIds: string[]) {
+  return round(
+    estimate.boq
+      .filter((b) => moduleIds.includes(b.moduleId))
+      .reduce((s, b) => s + b.amount, 0),
+    2,
+  );
+}
+
 export function buildAreaPresentation(
   state: ProjectState,
   estimate: EstimateResult,
@@ -304,82 +363,65 @@ export function buildAreaPresentation(
     2,
   );
 
+  const greyModules = [
+    'foundation',
+    'columns',
+    'beams',
+    'slabs',
+    'masonry',
+    'plaster',
+    'waterproofing',
+    'roofing',
+  ];
+  const woodMetalModules = [
+    'floor-tiles',
+    'wall-tiles',
+    'paint',
+    'doors',
+    'windows',
+    'ceiling',
+  ];
+
   const works: AreaWorkRow[] = [
     {
-      work: 'Excavation',
-      amount: sumBoqByCategory(estimate, (c, d) => c.includes('earth') || d.includes('excav')),
+      work: 'Foundation & Structure',
+      amount: sumBoqByModule(estimate, greyModules),
       unit: 'job',
     },
     {
-      work: 'PCC',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('pcc') || d.includes('plain')),
-      unit: 'm3',
-    },
-    {
-      work: 'RCC',
-      amount: sumBoqByCategory(
-        estimate,
-        (c, d) =>
-          (c.includes('concrete') || d.includes('rcc') || d.includes('column') || d.includes('beam') || d.includes('slab')) &&
-          !d.includes('pcc') &&
-          !d.includes('plain'),
-      ),
-      unit: 'm3',
-    },
-    {
-      work: 'Brickwork',
-      amount: sumBoqByCategory(estimate, (c, d) => c.includes('mason') || d.includes('brick')),
-      unit: 'm3',
-    },
-    {
-      work: 'Plaster',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('plaster')),
-      unit: 'm2',
-    },
-    {
-      work: 'Flooring',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('tile') || d.includes('floor')),
-      unit: 'm2',
-    },
-    {
-      work: 'Paint',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('paint') || c.includes('finish')),
-      unit: 'm2',
-    },
-    {
-      work: 'Electrical',
-      amount: round(estimatedCost * 0.06, 2),
+      work: 'Electrical Works',
+      amount: sumBoqByModule(estimate, ['electrical-works']),
       unit: 'job',
     },
     {
-      work: 'Plumbing',
-      amount: round(estimatedCost * 0.05, 2),
+      work: 'Plumbing Works',
+      amount: sumBoqByModule(estimate, ['plumbing-works']),
       unit: 'job',
     },
     {
-      work: 'Doors',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('door') || c.includes('wood')),
-      unit: 'nos',
+      work: 'Wood, Metal & Tile',
+      amount: sumBoqByModule(estimate, woodMetalModules),
+      unit: 'job',
     },
     {
-      work: 'Windows',
-      amount: sumBoqByCategory(estimate, (c, d) => d.includes('window') || c.includes('opening')),
-      unit: 'm2',
+      work: 'Fittings & Fixtures',
+      amount: sumBoqByModule(estimate, ['fixtures']),
+      unit: 'job',
     },
     {
-      work: 'Miscellaneous',
+      work: 'Overheads & Profit',
       amount: round(
         estimate.costs.transportation +
           estimate.costs.loadingUnloading +
           estimate.costs.waste +
-          estimate.costs.overhead,
+          estimate.costs.overhead +
+          estimate.costs.contractorProfit +
+          (estimate.costs.contingency ?? 0),
         2,
       ),
       unit: 'job',
     },
   ];
-
-  const designEngineering = round(estimatedCost * 0.02, 2);
 
   return {
     areaSft,
@@ -392,16 +434,12 @@ export function buildAreaPresentation(
     materials,
     totalMaterialCost,
     works,
-    designEngineering,
     labour: estimate.costs.labour,
     material: estimate.costs.material,
     equipment: estimate.costs.equipment,
     contractorProfit: estimate.costs.contractorProfit,
     contingency: estimate.costs.contingency ?? 0,
-    grandTotal:
-      opts.mode === 'simple'
-        ? estimatedCost
-        : round(engineGrandTotal + designEngineering, 2),
+    grandTotal: estimatedCost,
   };
 }
 
@@ -431,4 +469,46 @@ export function runAreaEstimate(
     estimate,
     presentation: buildAreaPresentation(next, estimate, opts),
   };
+}
+
+/** Summarize BOQ amounts into Zameen-style work categories */
+export function summarizeWorkCategories(
+  state: ProjectState,
+  estimate: EstimateResult,
+): { id: WorkCategoryId; label: string; amount: number; percent: number }[] {
+  const totals: Record<WorkCategoryId, number> = {
+    'foundation-structure': 0,
+    electrical: 0,
+    plumbing: 0,
+    'wood-metal-tile': 0,
+    'fittings-fixtures': 0,
+  };
+
+  for (const item of estimate.boq) {
+    const cat = classifyWorkCategory(item.moduleId);
+    totals[cat] = round(totals[cat] + item.amount, 2);
+  }
+
+  const overheadShare = round(
+    estimate.costs.transportation +
+      estimate.costs.loadingUnloading +
+      estimate.costs.waste +
+      estimate.costs.overhead +
+      estimate.costs.contractorProfit +
+      (estimate.costs.contingency ?? 0),
+    2,
+  );
+  totals['foundation-structure'] = round(totals['foundation-structure'] + overheadShare * 0.35, 2);
+  totals['wood-metal-tile'] = round(totals['wood-metal-tile'] + overheadShare * 0.25, 2);
+  totals.electrical = round(totals.electrical + overheadShare * 0.15, 2);
+  totals.plumbing = round(totals.plumbing + overheadShare * 0.15, 2);
+  totals['fittings-fixtures'] = round(totals['fittings-fixtures'] + overheadShare * 0.1, 2);
+
+  const grand = estimate.costs.grandTotal || 1;
+  return (Object.keys(totals) as WorkCategoryId[]).map((id) => ({
+    id,
+    label: WORK_CATEGORY_LABELS[id],
+    amount: totals[id],
+    percent: round((totals[id] / grand) * 100, 1),
+  }));
 }

@@ -14,6 +14,8 @@ import type {
   ModuleId,
   ProjectCostSummary,
   ProjectState,
+  WorkCategoryId,
+  WorkCategorySummary,
 } from '@boq/shared';
 import {
   COST_GROUP_META,
@@ -168,7 +170,44 @@ export const MODULE_COST_CLASSIFICATION: Record<ModuleId, CostClassification> = 
     subgroupId: 'septic-soak',
     mepKind: 'plumbing',
   },
+  'electrical-works': {
+    groupId: 'finishing',
+    subgroupId: 'electrical-finishing',
+    mepKind: 'electrical',
+  },
+  'plumbing-works': {
+    groupId: 'finishing',
+    subgroupId: 'plumbing-finishing',
+    mepKind: 'plumbing',
+  },
+  fixtures: {
+    groupId: 'finishing',
+    subgroupId: 'washroom',
+    mepKind: 'none',
+  },
 };
+
+/** Zameen-style work category for dashboard charts */
+export function classifyWorkCategory(moduleId: ModuleId): WorkCategoryId {
+  switch (moduleId) {
+    case 'electrical-works':
+      return 'electrical';
+    case 'plumbing-works':
+      return 'plumbing';
+    case 'fixtures':
+      return 'fittings-fixtures';
+    case 'floor-tiles':
+    case 'wall-tiles':
+    case 'paint':
+    case 'doors':
+    case 'windows':
+    case 'ceiling':
+    case 'roofing':
+      return 'wood-metal-tile';
+    default:
+      return 'foundation-structure';
+  }
+}
 
 export function classifyModule(moduleId: ModuleId): CostClassification {
   return (
@@ -362,6 +401,8 @@ export function buildProjectCostSummary(
     2,
   );
 
+  const workCategories = buildWorkCategorySummary(state, estimate, grandTotal);
+
   return {
     groups,
     greyStructure: grey,
@@ -378,9 +419,79 @@ export function buildProjectCostSummary(
         label: 'Total Plumbing (Grey + Finishing + Tanks)',
       },
     },
+    workCategories,
     directSubtotal,
     grandTotal,
   };
+}
+
+function buildWorkCategorySummary(
+  state: ProjectState,
+  estimate: EstimateResult,
+  grandTotal: number,
+): WorkCategorySummary[] {
+  const labels: Record<WorkCategoryId, string> = {
+    'foundation-structure': 'Foundation & Structure',
+    electrical: 'Electrical Works',
+    plumbing: 'Plumbing Works',
+    'wood-metal-tile': 'Wood, Metal & Tile Works',
+    'fittings-fixtures': 'Fittings & Fixtures',
+  };
+  const buckets: Record<WorkCategoryId, CostComponentTotals> = {
+    'foundation-structure': emptyComponents(),
+    electrical: emptyComponents(),
+    plumbing: emptyComponents(),
+    'wood-metal-tile': emptyComponents(),
+    'fittings-fixtures': emptyComponents(),
+  };
+
+  const ctx: CalcContext = {
+    materials: state.materialRates,
+    labour: state.labourRates,
+    equipment: state.equipmentRates,
+  };
+
+  for (const entry of state.entries) {
+    const cat = classifyWorkCategory(entry.moduleId);
+    const out = runModule(entry, ctx);
+    let material = 0;
+    let labour = 0;
+    let equipment = 0;
+    for (const m of out.materials) {
+      material += m.quantity * (state.materialRates.find((r) => r.id === m.materialId)?.rate ?? 0);
+    }
+    for (const l of out.labour) {
+      labour += l.quantity * (state.labourRates.find((r) => r.id === l.labourId)?.rate ?? 0);
+    }
+    for (const e of out.equipment) {
+      equipment += e.quantity * (state.equipmentRates.find((r) => r.id === e.equipmentId)?.rate ?? 0);
+    }
+    addComponents(buckets[cat], material, labour, equipment);
+  }
+
+  const overhead = estimate.costs.transportation + estimate.costs.loadingUnloading +
+    estimate.costs.waste + estimate.costs.overhead + estimate.costs.contractorProfit +
+    (estimate.costs.contingency ?? 0);
+  const overheadSplit: Record<WorkCategoryId, number> = {
+    'foundation-structure': 0.35,
+    electrical: 0.15,
+    plumbing: 0.15,
+    'wood-metal-tile': 0.25,
+    'fittings-fixtures': 0.1,
+  };
+  for (const id of Object.keys(overheadSplit) as WorkCategoryId[]) {
+    buckets[id].subtotal = round(buckets[id].subtotal + overhead * overheadSplit[id], 2);
+  }
+
+  return (Object.keys(buckets) as WorkCategoryId[]).map((id) => ({
+    id,
+    label: labels[id],
+    material: buckets[id].material,
+    labour: buckets[id].labour,
+    equipment: buckets[id].equipment,
+    subtotal: buckets[id].subtotal,
+    percentOfTotal: grandTotal > 0 ? round((buckets[id].subtotal / grandTotal) * 100, 1) : 0,
+  }));
 }
 
 /** Classify a BOQ line for tables / exports */
