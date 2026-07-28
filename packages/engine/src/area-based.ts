@@ -461,6 +461,8 @@ export interface AreaBreakdown {
   groundCoveredSft?: number;
   firstCoveredSft?: number;
   mumtyCoveredSft?: number;
+  balconySft?: number;
+  terraceSft?: number;
   /** When true, generate optional external works from open area */
   includeExternalWorks?: boolean;
 }

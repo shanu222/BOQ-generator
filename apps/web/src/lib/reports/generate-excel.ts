@@ -68,6 +68,18 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
           string | number,
         ][])
       : []),
+    ...(ctx.plot.balconySft > 0
+      ? ([['Balcony (sft)', Math.round(ctx.plot.balconySft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.terraceSft > 0
+      ? ([['Terrace (sft)', Math.round(ctx.plot.terraceSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
     ...(ctx.plot.firstCoveredSft > 0
       ? ([['First Floor (sft)', Math.round(ctx.plot.firstCoveredSft)]] as [
           string,

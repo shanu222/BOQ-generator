@@ -252,7 +252,7 @@ export default function CalculatorPage() {
         <CardHeader>
           <CardTitle>3. Coverage template</CardTitle>
           <CardDescription>
-            Standard ≈80% covered · Compact ≈90% · Luxury ≈65%
+            Seeds ground coverage from Pakistan standards (5 Marla Standard → 1,000 of 1,125 Sq.ft)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -271,12 +271,12 @@ export default function CalculatorPage() {
         </CardContent>
       </Card>
 
-      {/* Step 4 — Covered areas */}
+      {/* Step 4 — Covered areas + balcony / terrace */}
       <Card>
         <CardHeader>
           <CardTitle>4. Covered area</CardTitle>
           <CardDescription>
-            Auto-filled from Pakistan standards — edit any value
+            First floor = Ground − Terrace − Balcony (never equals ground floor)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -298,23 +298,66 @@ export default function CalculatorPage() {
               />
             </div>
           )}
+
           {calculator.floors.first && (
-            <div>
-              <Label htmlFor="ff">First Floor Covered Area (Sq.ft)</Label>
-              <Input
-                id="ff"
-                type="number"
-                min={0}
-                className="mt-1 text-lg tabular-nums"
-                value={calculator.firstCoveredSft}
-                onChange={(e) =>
-                  setCalculator({
-                    firstCoveredSft: Number(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="balcony">Balcony Area (Sq.ft)</Label>
+                  <Input
+                    id="balcony"
+                    type="number"
+                    min={0}
+                    className="mt-1 tabular-nums"
+                    value={calculator.balconySft ?? 0}
+                    onChange={(e) =>
+                      setCalculator({
+                        balconySft: Number(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="terrace">Terrace Area (Sq.ft)</Label>
+                  <Input
+                    id="terrace"
+                    type="number"
+                    min={0}
+                    className="mt-1 tabular-nums"
+                    value={calculator.terraceSft ?? 0}
+                    onChange={(e) =>
+                      setCalculator({
+                        terraceSft: Number(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="ff">First Floor Covered Area (Sq.ft)</Label>
+                <Input
+                  id="ff"
+                  type="number"
+                  min={0}
+                  className="mt-1 text-lg tabular-nums"
+                  value={calculator.firstCoveredSft}
+                  onChange={(e) =>
+                    setCalculator({
+                      firstCoveredSft: Number(e.target.value) || 0,
+                      firstFloorManual: true,
+                    })
+                  }
+                />
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  Auto: {formatNumber(calculator.groundCoveredSft, 0)} −{' '}
+                  {formatNumber(calculator.terraceSft ?? 0, 0)} terrace −{' '}
+                  {formatNumber(calculator.balconySft ?? 0, 0)} balcony
+                  {calculator.firstFloorManual ? ' · manually overridden' : ''}
+                </p>
+              </div>
+            </>
           )}
+
           {calculator.floors.mumty && (
             <div>
               <Label htmlFor="mumty">Mumty Covered Area (Sq.ft)</Label>
@@ -332,12 +375,6 @@ export default function CalculatorPage() {
               />
             </div>
           )}
-          <div className="rounded-lg bg-[var(--muted)]/40 px-4 py-3 text-sm">
-            <span className="text-[var(--muted-foreground)]">Total covered area</span>
-            <p className="font-display mt-0.5 text-xl font-semibold tabular-nums">
-              {formatNumber(totalCovered, 0)} Sq.ft.
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -346,7 +383,7 @@ export default function CalculatorPage() {
         <CardHeader>
           <CardTitle>5. Open area</CardTitle>
           <CardDescription>
-            Plot − Ground Floor covered (editable). Used for external works only.
+            Plot − Ground Floor covered. Not used in building BOQ — only optional external works.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -377,6 +414,46 @@ export default function CalculatorPage() {
             />
             Include external works (boundary, driveway, tanks)
           </label>
+        </CardContent>
+      </Card>
+
+      {/* Summary before calculate */}
+      <Card className="border-[color-mix(in_oklab,var(--accent)_30%,var(--border))]">
+        <CardHeader>
+          <CardTitle>Area summary</CardTitle>
+          <CardDescription>Recalculates live as you edit</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            {(
+              [
+                ['Plot Area', calculator.plotAreaSft],
+                ['Ground Floor', calculator.groundCoveredSft],
+                ...(calculator.floors.first
+                  ? ([
+                      ['Balcony', calculator.balconySft ?? 0],
+                      ['Terrace', calculator.terraceSft ?? 0],
+                      ['First Floor', calculator.firstCoveredSft],
+                    ] as const)
+                  : []),
+                ...(calculator.floors.mumty
+                  ? ([['Mumty', calculator.mumtyCoveredSft]] as const)
+                  : []),
+                ['Open Area', calculator.openAreaSft],
+                ['Total Covered Area', totalCovered],
+              ] as [string, number][]
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2"
+              >
+                <dt className="text-[var(--muted-foreground)]">{label}</dt>
+                <dd className="font-medium tabular-nums">
+                  {formatNumber(value, 0)} Sq.ft.
+                </dd>
+              </div>
+            ))}
+          </dl>
         </CardContent>
       </Card>
 

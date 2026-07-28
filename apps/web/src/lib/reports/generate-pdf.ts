@@ -162,6 +162,12 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
         ...(ctx.plot.groundCoveredSft > 0
           ? [['Ground Floor', `${Math.round(ctx.plot.groundCoveredSft)} sft`]]
           : []),
+        ...(ctx.plot.balconySft > 0
+          ? [['Balcony', `${Math.round(ctx.plot.balconySft)} sft`]]
+          : []),
+        ...(ctx.plot.terraceSft > 0
+          ? [['Terrace', `${Math.round(ctx.plot.terraceSft)} sft`]]
+          : []),
         ...(ctx.plot.firstCoveredSft > 0
           ? [['First Floor', `${Math.round(ctx.plot.firstCoveredSft)} sft`]]
           : []),

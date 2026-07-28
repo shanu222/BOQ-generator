@@ -85,7 +85,9 @@ export default function DashboardPage() {
             {calculator.calculated && (
               <p className="mt-1 text-[11px] text-[var(--muted-foreground)]">
                 GF {calculator.groundCoveredSft}
-                {calculator.floors?.first ? ` · FF ${calculator.firstCoveredSft}` : ''}
+                {calculator.floors?.first
+                  ? ` · FF ${calculator.firstCoveredSft} (−${(calculator.terraceSft ?? 0) + (calculator.balconySft ?? 0)} T/B)`
+                  : ''}
                 {calculator.floors?.mumty ? ` · Mumty ${calculator.mumtyCoveredSft}` : ''}
               </p>
             )}

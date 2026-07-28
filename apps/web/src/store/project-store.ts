@@ -15,10 +15,12 @@ import type {
 import {
   applyAreaToProject,
   applyCoverageTemplate,
+  computeFirstFloorCovered,
   computeOpenArea,
   createDefaultProject,
   createEntry,
   getModule,
+  getOpenSpaceDefaults,
   mergeRateCatalog,
   normalizeRateFactors,
   plotToSft,
@@ -50,23 +52,25 @@ export interface CalculatorFloors {
 
 export interface CalculatorState {
   mode: CalculatorMode;
-  /** @deprecated use totalCovered — kept in sync for older UI/reports */
+  /** Total covered (GF + FF + Mumty) — kept in sync */
   areaSft: number;
   costPerSft: number;
   durationMonths: number;
   calculated: boolean;
-  /** Plot size as entered by user */
   plotValue: number;
   plotUnit: PlotUnit;
-  /** Cached plot area in sft */
   plotAreaSft: number;
   floors: CalculatorFloors;
   groundCoveredSft: number;
   firstCoveredSft: number;
   mumtyCoveredSft: number;
+  balconySft: number;
+  terraceSft: number;
   openAreaSft: number;
   /** When true, open area is not auto-recomputed from plot − ground */
   openAreaManual: boolean;
+  /** When true, first floor is not auto-recomputed from GF − terrace − balcony */
+  firstFloorManual: boolean;
   template: CoverageTemplate;
   includeExternalWorks: boolean;
 }
@@ -79,17 +83,44 @@ export interface QuotationState {
   signatoryName: string;
 }
 
+/**
+ * Recalculate derived fields:
+ * Open = Plot − Ground
+ * First = Ground − Terrace − Balcony (unless manually overridden)
+ * Total covered = GF + FF + Mumty
+ */
 function syncCoveredTotals(c: CalculatorState): CalculatorState {
-  const areaSft = totalCoveredSft(
-    c.groundCoveredSft,
-    c.firstCoveredSft,
-    c.mumtyCoveredSft,
-    c.floors,
-  );
+  const ground = c.floors.ground ? c.groundCoveredSft : 0;
   const openAreaSft = c.openAreaManual
     ? c.openAreaSft
-    : computeOpenArea(c.plotAreaSft, c.floors.ground ? c.groundCoveredSft : 0);
-  return { ...c, areaSft, openAreaSft };
+    : computeOpenArea(c.plotAreaSft, ground);
+
+  let firstCoveredSft = c.firstCoveredSft;
+  if (c.floors.first) {
+    if (!c.firstFloorManual) {
+      firstCoveredSft = computeFirstFloorCovered(
+        ground,
+        c.terraceSft,
+        c.balconySft,
+      );
+    }
+  } else {
+    firstCoveredSft = 0;
+  }
+
+  const mumty = c.floors.mumty ? c.mumtyCoveredSft : 0;
+  const areaSft = totalCoveredSft(ground, firstCoveredSft, mumty, {
+    ground: c.floors.ground,
+    first: c.floors.first,
+    mumty: c.floors.mumty,
+  });
+
+  return {
+    ...c,
+    firstCoveredSft,
+    openAreaSft,
+    areaSft,
+  };
 }
 
 function seedFromPlot(
@@ -105,9 +136,12 @@ function seedFromPlot(
   | 'groundCoveredSft'
   | 'firstCoveredSft'
   | 'mumtyCoveredSft'
+  | 'balconySft'
+  | 'terraceSft'
   | 'openAreaSft'
   | 'areaSft'
   | 'openAreaManual'
+  | 'firstFloorManual'
   | 'template'
   | 'floors'
 > {
@@ -127,9 +161,12 @@ function seedFromPlot(
     groundCoveredSft: coverage.groundCoveredSft,
     firstCoveredSft: coverage.firstCoveredSft,
     mumtyCoveredSft: coverage.mumtyCoveredSft,
+    balconySft: coverage.balconySft,
+    terraceSft: coverage.terraceSft,
     openAreaSft: coverage.openAreaSft,
     areaSft: coverage.totalCoveredSft,
     openAreaManual: false,
+    firstFloorManual: false,
     template,
   };
 }
@@ -150,6 +187,11 @@ const defaultCalculator = (): CalculatorState => ({
 function migrateCalculator(raw: Partial<CalculatorState> | undefined): CalculatorState {
   const base = defaultCalculator();
   if (!raw) return base;
+  const plotAreaSft =
+    raw.plotAreaSft ??
+    (typeof raw.areaSft === 'number' ? raw.areaSft : base.plotAreaSft);
+  const defaults = getOpenSpaceDefaults(plotAreaSft);
+
   const merged: CalculatorState = {
     ...base,
     ...raw,
@@ -158,8 +200,11 @@ function migrateCalculator(raw: Partial<CalculatorState> | undefined): Calculato
       first: raw.floors?.first ?? false,
       mumty: raw.floors?.mumty ?? false,
     },
+    balconySft: raw.balconySft ?? defaults.balconySft,
+    terraceSft: raw.terraceSft ?? defaults.terraceSft,
+    firstFloorManual: raw.firstFloorManual ?? false,
   };
-  // Legacy: only areaSft was stored
+
   if (
     raw.plotAreaSft == null &&
     typeof raw.areaSft === 'number' &&
@@ -169,13 +214,17 @@ function migrateCalculator(raw: Partial<CalculatorState> | undefined): Calculato
     merged.plotValue = raw.areaSft;
     merged.plotUnit = 'sft';
     merged.plotAreaSft = raw.areaSft;
-    merged.groundCoveredSft = Math.round(raw.areaSft * 0.8);
+    const d = getOpenSpaceDefaults(raw.areaSft);
+    merged.groundCoveredSft = d.groundCoveredSft;
+    merged.balconySft = d.balconySft;
+    merged.terraceSft = d.terraceSft;
     merged.firstCoveredSft = 0;
     merged.mumtyCoveredSft = 0;
-    merged.openAreaSft = Math.max(0, raw.areaSft - merged.groundCoveredSft);
+    merged.openAreaSft = computeOpenArea(raw.areaSft, d.groundCoveredSft);
     merged.floors = { ground: true, first: false, mumty: false };
-    merged.areaSft = merged.groundCoveredSft;
+    merged.firstFloorManual = false;
   }
+
   return syncCoveredTotals(merged);
 }
 
@@ -437,17 +486,49 @@ export const useProjectStore = create<ProjectStore>()(
           if (partial.floors) {
             next.floors = { ...s.calculator.floors, ...partial.floors };
           }
-          // Editing covered areas switches to custom and may refresh open area
-          if (
+
+          const touchesDerived =
             partial.groundCoveredSft != null ||
-            partial.firstCoveredSft != null ||
-            partial.mumtyCoveredSft != null
-          ) {
+            partial.balconySft != null ||
+            partial.terraceSft != null ||
+            partial.mumtyCoveredSft != null;
+
+          if (touchesDerived) {
+            next.template = 'custom';
+            // Changing GF / balcony / terrace re-enables automatic first-floor formula
+            if (
+              partial.groundCoveredSft != null ||
+              partial.balconySft != null ||
+              partial.terraceSft != null
+            ) {
+              next.firstFloorManual = false;
+            }
+          }
+
+          // Explicit first-floor edit locks the formula
+          if (partial.firstCoveredSft != null && partial.firstFloorManual !== false) {
+            next.firstFloorManual = true;
             next.template = 'custom';
           }
+
           if (partial.openAreaSft != null && partial.openAreaManual !== false) {
             next.openAreaManual = true;
           }
+
+          // Enabling first floor: seed balcony/terrace from standards if zero
+          if (partial.floors?.first === true && !s.calculator.floors.first) {
+            const d = getOpenSpaceDefaults(next.plotAreaSft);
+            if (!next.balconySft) next.balconySft = d.balconySft;
+            if (!next.terraceSft) next.terraceSft = d.terraceSft;
+            next.firstFloorManual = false;
+          }
+
+          // Enabling mumty: seed from standards if empty
+          if (partial.floors?.mumty === true && !s.calculator.floors.mumty) {
+            const d = getOpenSpaceDefaults(next.plotAreaSft);
+            if (!next.mumtyCoveredSft) next.mumtyCoveredSft = d.mumtySft;
+          }
+
           next = syncCoveredTotals(next);
           return { calculator: next };
         }),
@@ -466,20 +547,14 @@ export const useProjectStore = create<ProjectStore>()(
             opts.plotValue != null || opts.plotUnit != null;
           const floorsChanged = opts.floors != null;
 
-          // Preserve custom edits when only toggling floors
+          // Preserve custom GF / balcony / terrace when only toggling floors
           if (
             s.calculator.template === 'custom' &&
             floorsChanged &&
             !templateChanged &&
             !plotChanged
           ) {
-            const coverage = applyCoverageTemplate({
-              plotSft: plotToSft(plotValue, plotUnit),
-              template: 'standard',
-              enableGround: true,
-              enableFirst: floors.first,
-              enableMumty: floors.mumty,
-            });
+            const d = getOpenSpaceDefaults(plotToSft(plotValue, plotUnit));
             const next = syncCoveredTotals({
               ...s.calculator,
               floors,
@@ -487,12 +562,12 @@ export const useProjectStore = create<ProjectStore>()(
               plotUnit,
               plotAreaSft: plotToSft(plotValue, plotUnit),
               groundCoveredSft: s.calculator.groundCoveredSft,
-              firstCoveredSft: floors.first
-                ? s.calculator.firstCoveredSft || coverage.firstCoveredSft
-                : 0,
+              balconySft: s.calculator.balconySft || d.balconySft,
+              terraceSft: s.calculator.terraceSft || d.terraceSft,
               mumtyCoveredSft: floors.mumty
-                ? s.calculator.mumtyCoveredSft || coverage.mumtyCoveredSft
+                ? s.calculator.mumtyCoveredSft || d.mumtySft
                 : 0,
+              firstFloorManual: false,
               openAreaManual: false,
               template: 'custom',
               calculated: false,
@@ -526,28 +601,25 @@ export const useProjectStore = create<ProjectStore>()(
 
       runAreaCalculation: () => {
         const { project, calculator, past } = get();
-        const covered = totalCoveredSft(
-          calculator.groundCoveredSft,
-          calculator.firstCoveredSft,
-          calculator.mumtyCoveredSft,
-          calculator.floors,
-        );
+        const synced = syncCoveredTotals(calculator);
+        const covered = synced.areaSft;
         const next = applyAreaToProject(project, {
           coveredAreaSft: Math.max(covered, 100),
-          plotAreaSft: calculator.plotAreaSft,
-          openAreaSft: calculator.openAreaSft,
-          groundCoveredSft: calculator.groundCoveredSft,
-          firstCoveredSft: calculator.firstCoveredSft,
-          mumtyCoveredSft: calculator.mumtyCoveredSft,
-          includeExternalWorks: calculator.includeExternalWorks,
+          plotAreaSft: synced.plotAreaSft,
+          openAreaSft: synced.openAreaSft,
+          groundCoveredSft: synced.groundCoveredSft,
+          firstCoveredSft: synced.firstCoveredSft,
+          mumtyCoveredSft: synced.mumtyCoveredSft,
+          balconySft: synced.balconySft,
+          terraceSft: synced.terraceSft,
+          includeExternalWorks: synced.includeExternalWorks,
         });
         set({
           past: [...past, cloneProject(project)].slice(-MAX_HISTORY),
           future: [],
           project: next,
           calculator: {
-            ...calculator,
-            areaSft: covered,
+            ...synced,
             calculated: true,
           },
           quotation: {

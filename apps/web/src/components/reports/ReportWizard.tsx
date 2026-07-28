@@ -48,6 +48,8 @@ export function ReportWizard({
       groundCoveredSft: calculator.floors?.ground ? calculator.groundCoveredSft ?? 0 : 0,
       firstCoveredSft: calculator.floors?.first ? calculator.firstCoveredSft ?? 0 : 0,
       mumtyCoveredSft: calculator.floors?.mumty ? calculator.mumtyCoveredSft ?? 0 : 0,
+      balconySft: calculator.floors?.first ? calculator.balconySft ?? 0 : 0,
+      terraceSft: calculator.floors?.first ? calculator.terraceSft ?? 0 : 0,
       openAreaSft: calculator.openAreaSft ?? 0,
       coveredAreaSft: calculator.areaSft,
       costPerSft: calculator.costPerSft,

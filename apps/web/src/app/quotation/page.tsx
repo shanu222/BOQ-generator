@@ -150,10 +150,20 @@ export default function QuotationPage() {
             <dd className="font-medium">{calculator.groundCoveredSft ?? 0} Sq.ft.</dd>
           </div>
           {calculator.floors?.first && (
-            <div className="flex justify-between gap-4">
-              <dt className="text-[var(--muted-foreground)]">First floor</dt>
-              <dd className="font-medium">{calculator.firstCoveredSft ?? 0} Sq.ft.</dd>
-            </div>
+            <>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--muted-foreground)]">Balcony</dt>
+                <dd className="font-medium">{calculator.balconySft ?? 0} Sq.ft.</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--muted-foreground)]">Terrace</dt>
+                <dd className="font-medium">{calculator.terraceSft ?? 0} Sq.ft.</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--muted-foreground)]">First floor</dt>
+                <dd className="font-medium">{calculator.firstCoveredSft ?? 0} Sq.ft.</dd>
+              </div>
+            </>
           )}
           {calculator.floors?.mumty && (
             <div className="flex justify-between gap-4">

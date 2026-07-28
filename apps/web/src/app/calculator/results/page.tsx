@@ -93,7 +93,7 @@ export default function CalculatorResultsPage() {
             <p className="mt-1 text-xs text-[var(--muted-foreground)]">
               GF {formatNumber(calculator.groundCoveredSft ?? 0, 0)}
               {calculator.floors?.first
-                ? ` · FF ${formatNumber(calculator.firstCoveredSft ?? 0, 0)}`
+                ? ` · FF ${formatNumber(calculator.firstCoveredSft ?? 0, 0)} (−${formatNumber((calculator.terraceSft ?? 0) + (calculator.balconySft ?? 0), 0)} terrace/balcony)`
                 : ''}
               {calculator.floors?.mumty
                 ? ` · Mumty ${formatNumber(calculator.mumtyCoveredSft ?? 0, 0)}`

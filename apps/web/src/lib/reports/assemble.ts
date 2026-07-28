@@ -13,6 +13,8 @@ export interface PlotAreaSummary {
   groundCoveredSft: number;
   firstCoveredSft: number;
   mumtyCoveredSft: number;
+  balconySft: number;
+  terraceSft: number;
   openAreaSft: number;
   coveredAreaSft: number;
   costPerSft?: number;
@@ -60,10 +62,16 @@ export function buildReportContext(
           groundCoveredSft: plotOrCovered,
           firstCoveredSft: 0,
           mumtyCoveredSft: 0,
+          balconySft: 0,
+          terraceSft: 0,
           openAreaSft: 0,
           coveredAreaSft: plotOrCovered,
         }
-      : plotOrCovered;
+      : {
+          ...plotOrCovered,
+          balconySft: plotOrCovered.balconySft ?? 0,
+          terraceSft: plotOrCovered.terraceSft ?? 0,
+        };
 
   const coveredAreaSft = plot.coveredAreaSft;
   const c = estimate.costs;
@@ -103,6 +111,7 @@ export function buildReportContext(
     plot: { ...plot, costPerSft: ratePerSft },
     assumptions: [
       'Building quantities are derived from total covered area (Ground + First + Mumty).',
+      'First floor covered area = Ground − Terrace − Balcony (Pakistan residential practice).',
       'Open area does not inflate building quantities; it drives optional external works when selected.',
       'Unit rates are based on the project rate database (Pakistan market defaults unless overridden).',
       'Costs are classified into Grey Structure, Finishing, External Development, and Miscellaneous packages.',
@@ -114,7 +123,11 @@ export function buildReportContext(
       'All amounts are in Pakistani Rupees (PKR) unless otherwise stated.',
       'BOQ item numbers follow the internal estimation sequence.',
       plot.plotAreaSft > 0
-        ? `Plot ${Math.round(plot.plotAreaSft)} sft · Covered ${Math.round(coveredAreaSft)} sft · Open ${Math.round(plot.openAreaSft)} sft.`
+        ? `Plot ${Math.round(plot.plotAreaSft)} sft · Covered ${Math.round(coveredAreaSft)} sft · Open ${Math.round(plot.openAreaSft)} sft${
+            plot.firstCoveredSft > 0
+              ? ` · FF ${Math.round(plot.firstCoveredSft)} (terrace ${Math.round(plot.terraceSft)} + balcony ${Math.round(plot.balconySft)} deducted)`
+              : ''
+          }.`
         : coveredAreaSft > 0
           ? `Covered area used for this estimate: ${Math.round(coveredAreaSft)} sft.`
           : 'Covered area was not recorded; quantities follow calculator entries.',

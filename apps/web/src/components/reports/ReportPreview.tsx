@@ -78,6 +78,16 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
                     ['Ground floor', `${Math.round(ctx.plot.groundCoveredSft)} sft`],
                   ] as [string, string][])
                 : []),
+              ...(ctx.plot.balconySft > 0
+                ? ([
+                    ['Balcony', `${Math.round(ctx.plot.balconySft)} sft`],
+                  ] as [string, string][])
+                : []),
+              ...(ctx.plot.terraceSft > 0
+                ? ([
+                    ['Terrace', `${Math.round(ctx.plot.terraceSft)} sft`],
+                  ] as [string, string][])
+                : []),
               ...(ctx.plot.firstCoveredSft > 0
                 ? ([
                     ['First floor', `${Math.round(ctx.plot.firstCoveredSft)} sft`],
