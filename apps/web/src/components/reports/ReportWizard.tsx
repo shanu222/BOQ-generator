@@ -41,7 +41,20 @@ export function ReportWizard({
   estimate: EstimateResult;
   onGenerated?: (info: { formats: string[]; total: number }) => void;
 }) {
-  const coveredAreaSft = useProjectStore((s) => s.calculator.areaSft);
+  const calculator = useProjectStore((s) => s.calculator);
+  const plotSummary = useMemo(
+    () => ({
+      plotAreaSft: calculator.plotAreaSft ?? 0,
+      groundCoveredSft: calculator.floors?.ground ? calculator.groundCoveredSft ?? 0 : 0,
+      firstCoveredSft: calculator.floors?.first ? calculator.firstCoveredSft ?? 0 : 0,
+      mumtyCoveredSft: calculator.floors?.mumty ? calculator.mumtyCoveredSft ?? 0 : 0,
+      openAreaSft: calculator.openAreaSft ?? 0,
+      coveredAreaSft: calculator.areaSft,
+      costPerSft: calculator.costPerSft,
+      durationMonths: calculator.durationMonths,
+    }),
+    [calculator],
+  );
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ReportWizardConfig>(() => {
     const base = defaultWizardConfig();
@@ -60,8 +73,8 @@ export function ReportWizard({
   const [error, setError] = useState<string | null>(null);
 
   const ctx = useMemo(
-    () => buildReportContext(config, project, estimate, coveredAreaSft),
-    [config, project, estimate, coveredAreaSft],
+    () => buildReportContext(config, project, estimate, plotSummary),
+    [config, project, estimate, plotSummary],
   );
 
   function toggleFormat(fmt: ExportFormat) {
@@ -89,7 +102,7 @@ export function ReportWizard({
         config,
         project,
         estimate,
-        coveredAreaSft,
+        plotSummary,
       );
       setMessage(
         `Generated ${files.length} file${files.length > 1 ? 's' : ''}: ${files

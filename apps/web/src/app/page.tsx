@@ -65,20 +65,39 @@ export default function DashboardPage() {
         </Button>
       </motion.div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs text-[var(--muted-foreground)]">Plot area</p>
+            <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
+              {calculator.calculated
+                ? `${calculator.plotAreaSft?.toLocaleString('en-PK') ?? '—'} Sq.ft.`
+                : '—'}
+            </p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-5">
             <p className="text-xs text-[var(--muted-foreground)]">Covered area</p>
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
               {calculator.calculated ? `${calculator.areaSft} Sq.ft.` : '—'}
             </p>
+            {calculator.calculated && (
+              <p className="mt-1 text-[11px] text-[var(--muted-foreground)]">
+                GF {calculator.groundCoveredSft}
+                {calculator.floors?.first ? ` · FF ${calculator.firstCoveredSft}` : ''}
+                {calculator.floors?.mumty ? ` · Mumty ${calculator.mumtyCoveredSft}` : ''}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs text-[var(--muted-foreground)]">BOQ items</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Open area</p>
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
-              {estimate.boq.length}
+              {calculator.calculated
+                ? `${calculator.openAreaSft?.toLocaleString('en-PK') ?? 0} Sq.ft.`
+                : '—'}
             </p>
           </CardContent>
         </Card>
@@ -90,7 +109,8 @@ export default function DashboardPage() {
             </p>
             {costPerSft > 0 && (
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                {costPerSft.toLocaleString('en-PK')} PKR / sft
+                {costPerSft.toLocaleString('en-PK')} PKR / sft ·{' '}
+                {calculator.durationMonths} mo
               </p>
             )}
           </CardContent>

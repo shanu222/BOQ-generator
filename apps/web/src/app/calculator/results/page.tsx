@@ -73,24 +73,43 @@ export default function CalculatorResultsPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs text-[var(--muted-foreground)]">Construction Area</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Plot area</p>
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
-              {formatNumber(view.areaSft, 0)}{' '}
+              {formatNumber(calculator.plotAreaSft ?? 0, 0)}{' '}
               <span className="text-sm font-normal">Sq.ft.</span>
-            </p>
-            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-              {formatNumber(view.areaM2, 1)} m² · {view.durationMonths} months
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs text-[var(--muted-foreground)]">Cost per Sq.ft.</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Total covered</p>
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
-              {formatPKR(view.costPerSft)}
+              {formatNumber(view.areaSft, 0)}{' '}
+              <span className="text-sm font-normal">Sq.ft.</span>
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              GF {formatNumber(calculator.groundCoveredSft ?? 0, 0)}
+              {calculator.floors?.first
+                ? ` · FF ${formatNumber(calculator.firstCoveredSft ?? 0, 0)}`
+                : ''}
+              {calculator.floors?.mumty
+                ? ` · Mumty ${formatNumber(calculator.mumtyCoveredSft ?? 0, 0)}`
+                : ''}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs text-[var(--muted-foreground)]">Open area</p>
+            <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
+              {formatNumber(calculator.openAreaSft ?? 0, 0)}{' '}
+              <span className="text-sm font-normal">Sq.ft.</span>
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              {view.durationMonths} months
             </p>
           </CardContent>
         </Card>
@@ -99,6 +118,14 @@ export default function CalculatorResultsPage() {
             <p className="text-xs text-[var(--muted-foreground)]">Estimated Cost</p>
             <p className="font-display mt-1 text-2xl font-semibold tabular-nums">
               {formatPKR(view.estimatedCost)}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              {formatPKR(
+                view.areaSft > 0
+                  ? Math.round(view.estimatedCost / view.areaSft)
+                  : view.costPerSft,
+              )}
+              /sft
             </p>
           </CardContent>
         </Card>

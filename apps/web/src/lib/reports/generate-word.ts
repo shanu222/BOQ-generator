@@ -101,10 +101,16 @@ export async function generateWordReport(ctx: ReportContext): Promise<Blob> {
     blocks.push(p(''));
     blocks.push(p(ctx.subtitle, { bold: true, size: 26, center: true }));
     blocks.push(p(`Location: ${ctx.project.location || '—'}`, { center: true }));
+    if (ctx.plot.plotAreaSft > 0) {
+      blocks.push(p(`Plot area: ${Math.round(ctx.plot.plotAreaSft)} sft`, { center: true }));
+    }
     if (ctx.coveredAreaSft > 0) {
       blocks.push(
-        p(`Covered area: ${Math.round(ctx.coveredAreaSft)} sft`, { center: true }),
+        p(`Total covered area: ${Math.round(ctx.coveredAreaSft)} sft`, { center: true }),
       );
+    }
+    if (ctx.plot.openAreaSft > 0) {
+      blocks.push(p(`Open area: ${Math.round(ctx.plot.openAreaSft)} sft`, { center: true }));
     }
     blocks.push(p(`Date: ${ctx.dateLabel}  ·  Version ${ctx.version}`, { center: true }));
     blocks.push(p(`Prepared by: ${ctx.generatedBy}`, { center: true }));
@@ -153,6 +159,24 @@ export async function generateWordReport(ctx: ReportContext): Promise<Blob> {
           ['Prepared By', ctx.generatedBy],
           ['Date', ctx.dateLabel],
           ['Report Version', ctx.version],
+          ...(ctx.plot.plotAreaSft > 0
+            ? [['Plot Area', `${Math.round(ctx.plot.plotAreaSft)} sft`]]
+            : []),
+          ...(ctx.plot.groundCoveredSft > 0
+            ? [['Ground Floor', `${Math.round(ctx.plot.groundCoveredSft)} sft`]]
+            : []),
+          ...(ctx.plot.firstCoveredSft > 0
+            ? [['First Floor', `${Math.round(ctx.plot.firstCoveredSft)} sft`]]
+            : []),
+          ...(ctx.plot.mumtyCoveredSft > 0
+            ? [['Mumty', `${Math.round(ctx.plot.mumtyCoveredSft)} sft`]]
+            : []),
+          ...(ctx.coveredAreaSft > 0
+            ? [['Total Covered Area', `${Math.round(ctx.coveredAreaSft)} sft`]]
+            : []),
+          ...(ctx.plot.openAreaSft > 0
+            ? [['Open Area', `${Math.round(ctx.plot.openAreaSft)} sft`]]
+            : []),
         ],
         color,
       ),

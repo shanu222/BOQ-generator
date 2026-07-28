@@ -35,8 +35,14 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
             <div className="space-y-1 text-sm opacity-95">
               <p className="text-xl font-semibold">{ctx.subtitle}</p>
               <p>Location: {ctx.project.location || '—'}</p>
+              {ctx.plot.plotAreaSft > 0 && (
+                <p>Plot: {Math.round(ctx.plot.plotAreaSft)} sft</p>
+              )}
               {ctx.coveredAreaSft > 0 && (
                 <p>Covered area: {Math.round(ctx.coveredAreaSft)} sft</p>
+              )}
+              {ctx.plot.openAreaSft > 0 && (
+                <p>Open area: {Math.round(ctx.plot.openAreaSft)} sft</p>
               )}
               <p>
                 {ctx.dateLabel} · Rev {ctx.version} · {ctx.generatedBy}
@@ -61,8 +67,35 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
               ['Client', ctx.project.client || '—'],
               ['Location', ctx.project.location],
               ['Prepared by', ctx.generatedBy],
+              ...(ctx.plot.plotAreaSft > 0
+                ? ([['Plot area', `${Math.round(ctx.plot.plotAreaSft)} sft`]] as [
+                    string,
+                    string,
+                  ][])
+                : []),
+              ...(ctx.plot.groundCoveredSft > 0
+                ? ([
+                    ['Ground floor', `${Math.round(ctx.plot.groundCoveredSft)} sft`],
+                  ] as [string, string][])
+                : []),
+              ...(ctx.plot.firstCoveredSft > 0
+                ? ([
+                    ['First floor', `${Math.round(ctx.plot.firstCoveredSft)} sft`],
+                  ] as [string, string][])
+                : []),
+              ...(ctx.plot.mumtyCoveredSft > 0
+                ? ([['Mumty', `${Math.round(ctx.plot.mumtyCoveredSft)} sft`]] as [
+                    string,
+                    string,
+                  ][])
+                : []),
               ...(ctx.coveredAreaSft > 0
-                ? ([['Covered area', `${Math.round(ctx.coveredAreaSft)} sft`]] as [
+                ? ([
+                    ['Total covered', `${Math.round(ctx.coveredAreaSft)} sft`],
+                  ] as [string, string][])
+                : []),
+              ...(ctx.plot.openAreaSft > 0
+                ? ([['Open area', `${Math.round(ctx.plot.openAreaSft)} sft`]] as [
                     string,
                     string,
                   ][])

@@ -85,8 +85,14 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
     const coverLines = [
       `Client: ${ctx.project.client || '—'}`,
       `Location: ${ctx.project.location}`,
+      ...(ctx.plot.plotAreaSft > 0
+        ? [`Plot area: ${Math.round(ctx.plot.plotAreaSft)} sft`]
+        : []),
       ...(ctx.coveredAreaSft > 0
-        ? [`Covered area: ${Math.round(ctx.coveredAreaSft)} sft`]
+        ? [`Total covered: ${Math.round(ctx.coveredAreaSft)} sft`]
+        : []),
+      ...(ctx.plot.openAreaSft > 0
+        ? [`Open area: ${Math.round(ctx.plot.openAreaSft)} sft`]
         : []),
       `Prepared by: ${ctx.generatedBy}`,
       `Date: ${ctx.dateLabel}`,
@@ -150,6 +156,24 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
         ['Prepared By', ctx.generatedBy],
         ['Date', ctx.dateLabel],
         ['Version', ctx.version],
+        ...(ctx.plot.plotAreaSft > 0
+          ? [['Plot Area', `${Math.round(ctx.plot.plotAreaSft)} sft`]]
+          : []),
+        ...(ctx.plot.groundCoveredSft > 0
+          ? [['Ground Floor', `${Math.round(ctx.plot.groundCoveredSft)} sft`]]
+          : []),
+        ...(ctx.plot.firstCoveredSft > 0
+          ? [['First Floor', `${Math.round(ctx.plot.firstCoveredSft)} sft`]]
+          : []),
+        ...(ctx.plot.mumtyCoveredSft > 0
+          ? [['Mumty', `${Math.round(ctx.plot.mumtyCoveredSft)} sft`]]
+          : []),
+        ...(ctx.coveredAreaSft > 0
+          ? [['Total Covered', `${Math.round(ctx.coveredAreaSft)} sft`]]
+          : []),
+        ...(ctx.plot.openAreaSft > 0
+          ? [['Open Area', `${Math.round(ctx.plot.openAreaSft)} sft`]]
+          : []),
       ],
       margin: { left: margin, right: margin },
       headStyles: { fillColor: [pr, pg, pb], textColor: 255, fontStyle: 'bold' },

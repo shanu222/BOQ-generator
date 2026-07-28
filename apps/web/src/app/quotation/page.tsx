@@ -142,8 +142,32 @@ export default function QuotationPage() {
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-[var(--muted-foreground)]">Covered area</dt>
+            <dt className="text-[var(--muted-foreground)]">Plot area</dt>
+            <dd className="font-medium">{calculator.plotAreaSft ?? '—'} Sq.ft.</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-[var(--muted-foreground)]">Ground floor</dt>
+            <dd className="font-medium">{calculator.groundCoveredSft ?? 0} Sq.ft.</dd>
+          </div>
+          {calculator.floors?.first && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-[var(--muted-foreground)]">First floor</dt>
+              <dd className="font-medium">{calculator.firstCoveredSft ?? 0} Sq.ft.</dd>
+            </div>
+          )}
+          {calculator.floors?.mumty && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-[var(--muted-foreground)]">Mumty</dt>
+              <dd className="font-medium">{calculator.mumtyCoveredSft ?? 0} Sq.ft.</dd>
+            </div>
+          )}
+          <div className="flex justify-between gap-4">
+            <dt className="text-[var(--muted-foreground)]">Total covered</dt>
             <dd className="font-medium">{calculator.areaSft} Sq.ft.</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-[var(--muted-foreground)]">Open area</dt>
+            <dd className="font-medium">{calculator.openAreaSft ?? 0} Sq.ft.</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-[var(--muted-foreground)]">Duration</dt>

@@ -409,6 +409,15 @@ export function buildAreaPresentation(
       unit: 'job',
     },
     {
+      work: 'External Development',
+      amount: sumBoqByModule(estimate, [
+        'boundary-wall',
+        'water-tank',
+        'septic-tank',
+      ]),
+      unit: 'job',
+    },
+    {
       work: 'Overheads & Profit',
       amount: round(
         estimate.costs.transportation +
@@ -443,13 +452,120 @@ export function buildAreaPresentation(
   };
 }
 
+/** Floor / plot breakdown passed from the calculator UI */
+export interface AreaBreakdown {
+  /** Total covered (GF + FF + Mumty) — drives building quantities */
+  coveredAreaSft: number;
+  plotAreaSft?: number;
+  openAreaSft?: number;
+  groundCoveredSft?: number;
+  firstCoveredSft?: number;
+  mumtyCoveredSft?: number;
+  /** When true, generate optional external works from open area */
+  includeExternalWorks?: boolean;
+}
+
+/**
+ * External development from open (uncovered) plot area.
+ * Does not inflate building quantities — only boundary, paving, tanks.
+ */
+export function buildEntriesFromOpenArea(openAreaSft: number): MeasurementEntry[] {
+  const open = Math.max(openAreaSft, 0);
+  if (open < 50) return [];
+
+  const openM2 = open * SFT_TO_M2;
+  const side = Math.sqrt(Math.max(openM2, 1));
+  // Approximate plot perimeter from open + a typical covered footprint share
+  const perimeter = round(4 * Math.sqrt(openM2 * 4), 2); // rough plot edge
+  const wallLen = round(Math.max(perimeter * 0.55, 20), 2);
+  const paveSide = round(Math.sqrt(openM2 * 0.45), 2);
+
+  let order = 900;
+  const entries: MeasurementEntry[] = [];
+  const push = (
+    moduleId: MeasurementEntry['moduleId'],
+    fields: Record<string, number | string>,
+    label: string,
+  ) => {
+    entries.push(createEntry(moduleId, fields, label, order));
+    order += 1;
+  };
+
+  push(
+    'boundary-wall',
+    {
+      length: wallLen,
+      height: 2.1,
+      thickness: 0.23,
+      copingWidth: 0.3,
+      copingThk: 0.05,
+      quantity: 1,
+    },
+    '[Open] Boundary wall',
+  );
+
+  push(
+    'floor-tiles',
+    {
+      length: paveSide,
+      width: paveSide,
+      quantity: 1,
+    },
+    '[Open] Driveway / pavers',
+  );
+
+  push(
+    'water-tank',
+    {
+      length: 2.5,
+      width: 2,
+      height: 1.8,
+      wallThickness: 0.15,
+      baseThickness: 0.15,
+      coverThickness: 0.1,
+      quantity: 1,
+      mix: '1:1.5:3',
+    },
+    '[Open] Underground / overhead water tank',
+  );
+
+  push(
+    'septic-tank',
+    {
+      length: 2.4,
+      width: 1.5,
+      height: 1.5,
+      wallThickness: 0.23,
+      baseThickness: 0.15,
+      coverThickness: 0.1,
+      quantity: 1,
+      mix: '1:2:4',
+    },
+    '[Open] Septic tank',
+  );
+
+  return entries;
+}
+
 export function applyAreaToProject(
   project: ProjectState,
-  areaSft: number,
+  areaOrBreakdown: number | AreaBreakdown,
 ): ProjectState {
+  const breakdown: AreaBreakdown =
+    typeof areaOrBreakdown === 'number'
+      ? { coveredAreaSft: areaOrBreakdown, includeExternalWorks: false }
+      : areaOrBreakdown;
+
+  const covered = Math.max(breakdown.coveredAreaSft, 100);
+  const building = buildEntriesFromCoveredArea(covered);
+  const external =
+    breakdown.includeExternalWorks !== false && (breakdown.openAreaSft ?? 0) > 50
+      ? buildEntriesFromOpenArea(breakdown.openAreaSft ?? 0)
+      : [];
+
   return {
     ...project,
-    entries: buildEntriesFromCoveredArea(areaSft),
+    entries: [...building, ...external],
   };
 }
 
@@ -460,9 +576,15 @@ export function runAreaEstimate(
     costPerSft: number;
     durationMonths: number;
     mode: CalculatorMode;
+    openAreaSft?: number;
+    includeExternalWorks?: boolean;
   },
 ): { project: ProjectState; estimate: EstimateResult; presentation: AreaEstimatePresentation } {
-  const next = applyAreaToProject(project, opts.areaSft);
+  const next = applyAreaToProject(project, {
+    coveredAreaSft: opts.areaSft,
+    openAreaSft: opts.openAreaSft,
+    includeExternalWorks: opts.includeExternalWorks,
+  });
   const estimate = calculateEstimate(next);
   return {
     project: next,

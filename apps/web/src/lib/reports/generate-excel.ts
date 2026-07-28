@@ -56,8 +56,44 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
     ['Prepared By', ctx.generatedBy],
     ['Date', ctx.dateLabel],
     ['Report Version', ctx.version],
+    ...(ctx.plot.plotAreaSft > 0
+      ? ([['Plot Area (sft)', Math.round(ctx.plot.plotAreaSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.groundCoveredSft > 0
+      ? ([['Ground Floor (sft)', Math.round(ctx.plot.groundCoveredSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.firstCoveredSft > 0
+      ? ([['First Floor (sft)', Math.round(ctx.plot.firstCoveredSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.mumtyCoveredSft > 0
+      ? ([['Mumty (sft)', Math.round(ctx.plot.mumtyCoveredSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
     ...(ctx.coveredAreaSft > 0
-      ? ([['Covered Area (sft)', Math.round(ctx.coveredAreaSft)]] as [string, string | number][])
+      ? ([['Total Covered Area (sft)', Math.round(ctx.coveredAreaSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.openAreaSft > 0
+      ? ([['Open Area (sft)', Math.round(ctx.plot.openAreaSft)]] as [
+          string,
+          string | number,
+        ][])
+      : []),
+    ...(ctx.plot.costPerSft
+      ? ([['Rate / Sq.ft (PKR)', ctx.plot.costPerSft]] as [string, string | number][])
       : []),
     ['Style', ctx.style.name],
   ];

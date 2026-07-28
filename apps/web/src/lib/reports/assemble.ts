@@ -7,6 +7,18 @@ import {
   type ReportWizardConfig,
 } from './types';
 
+/** Calculator plot / floor summary for reports */
+export interface PlotAreaSummary {
+  plotAreaSft: number;
+  groundCoveredSft: number;
+  firstCoveredSft: number;
+  mumtyCoveredSft: number;
+  openAreaSft: number;
+  coveredAreaSft: number;
+  costPerSft?: number;
+  durationMonths?: number;
+}
+
 export interface ReportContext {
   config: ReportWizardConfig;
   project: ProjectState;
@@ -19,6 +31,7 @@ export interface ReportContext {
   companyName: string;
   generatedBy: string;
   coveredAreaSft: number;
+  plot: PlotAreaSummary;
   assumptions: string[];
   engineeringNotes: string[];
   rateBreakdown: { label: string; amount: number; pct: number }[];
@@ -34,14 +47,30 @@ export function buildReportContext(
   config: ReportWizardConfig,
   project: ProjectState,
   estimate: EstimateResult,
-  coveredAreaSft = 0,
+  plotOrCovered: number | PlotAreaSummary = 0,
 ): ReportContext {
   const type = REPORT_TYPES.find((t) => t.id === config.reportType)!;
   const style =
     REPORT_STYLES.find((s) => s.id === config.style) ?? REPORT_STYLES[1];
 
+  const plot: PlotAreaSummary =
+    typeof plotOrCovered === 'number'
+      ? {
+          plotAreaSft: 0,
+          groundCoveredSft: plotOrCovered,
+          firstCoveredSft: 0,
+          mumtyCoveredSft: 0,
+          openAreaSft: 0,
+          coveredAreaSft: plotOrCovered,
+        }
+      : plotOrCovered;
+
+  const coveredAreaSft = plot.coveredAreaSft;
   const c = estimate.costs;
   const projectCostSummary = buildProjectCostSummary(project, estimate);
+  const ratePerSft =
+    plot.costPerSft ??
+    (coveredAreaSft > 0 ? Math.round(c.grandTotal / coveredAreaSft) : 0);
 
   const rateBreakdown = [
     { label: 'Material', amount: c.material },
@@ -71,11 +100,12 @@ export function buildReportContext(
     companyName: config.meta.companyName || 'BOQ Pro Engineering',
     generatedBy: config.meta.generatedBy || project.preparedBy || '—',
     coveredAreaSft,
+    plot: { ...plot, costPerSft: ratePerSft },
     assumptions: [
-      'Quantities are derived from covered-area-based estimation inputs.',
+      'Building quantities are derived from total covered area (Ground + First + Mumty).',
+      'Open area does not inflate building quantities; it drives optional external works when selected.',
       'Unit rates are based on the project rate database (Pakistan market defaults unless overridden).',
       'Costs are classified into Grey Structure, Finishing, External Development, and Miscellaneous packages.',
-      'MEP summaries are informative and do not double-count amounts already in packages.',
       'Wastage, overhead, profit, contingency, and tax follow the configured rate analysis factors.',
       'This report is suitable for estimation and tender guidance; site verification is recommended.',
     ],
@@ -83,9 +113,11 @@ export function buildReportContext(
       ...estimate.warnings.slice(0, 12).map((w) => `${w.title}: ${w.message}`),
       'All amounts are in Pakistani Rupees (PKR) unless otherwise stated.',
       'BOQ item numbers follow the internal estimation sequence.',
-      coveredAreaSft > 0
-        ? `Covered area used for this estimate: ${Math.round(coveredAreaSft)} sft.`
-        : 'Covered area was not recorded on the project; quantities follow calculator entries.',
+      plot.plotAreaSft > 0
+        ? `Plot ${Math.round(plot.plotAreaSft)} sft · Covered ${Math.round(coveredAreaSft)} sft · Open ${Math.round(plot.openAreaSft)} sft.`
+        : coveredAreaSft > 0
+          ? `Covered area used for this estimate: ${Math.round(coveredAreaSft)} sft.`
+          : 'Covered area was not recorded; quantities follow calculator entries.',
     ],
     rateBreakdown,
     costSummary: projectCostSummary,

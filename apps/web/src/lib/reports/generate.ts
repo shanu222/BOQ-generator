@@ -1,5 +1,5 @@
 import type { EstimateResult, ProjectState } from '@boq/shared';
-import { buildReportContext } from './assemble';
+import { buildReportContext, type PlotAreaSummary } from './assemble';
 import { buildReportFilename, downloadBlob } from './naming';
 import type { ExportFormat, ReportWizardConfig } from './types';
 import type { ReportContext } from './assemble';
@@ -10,7 +10,6 @@ export interface GeneratedReportFile {
   blob: Blob;
 }
 
-/** Heavy libs (exceljs/docx/jspdf) load only when generating — keeps Report Center page stable. */
 async function buildBlob(format: ExportFormat, ctx: ReportContext): Promise<Blob> {
   if (format === 'xlsx') {
     const { generateExcelReport } = await import('./generate-excel');
@@ -28,13 +27,13 @@ export async function generateReports(
   config: ReportWizardConfig,
   project: ProjectState,
   estimate: EstimateResult,
-  coveredAreaSft = 0,
+  plotOrCovered: number | PlotAreaSummary = 0,
 ): Promise<GeneratedReportFile[]> {
   if (config.formats.length === 0) {
     throw new Error('Select at least one export format.');
   }
 
-  const ctx = buildReportContext(config, project, estimate, coveredAreaSft);
+  const ctx = buildReportContext(config, project, estimate, plotOrCovered);
   const files: GeneratedReportFile[] = [];
 
   for (const format of config.formats) {
@@ -49,9 +48,9 @@ export async function generateAndDownloadReports(
   config: ReportWizardConfig,
   project: ProjectState,
   estimate: EstimateResult,
-  coveredAreaSft = 0,
+  plotOrCovered: number | PlotAreaSummary = 0,
 ): Promise<GeneratedReportFile[]> {
-  const files = await generateReports(config, project, estimate, coveredAreaSft);
+  const files = await generateReports(config, project, estimate, plotOrCovered);
   for (const file of files) {
     downloadBlob(file.blob, file.filename);
     await new Promise((r) => setTimeout(r, 250));
