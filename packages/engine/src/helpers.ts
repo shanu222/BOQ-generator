@@ -109,11 +109,15 @@ export function mergeMaterials(
   const map = new Map<string, MaterialLine>();
   for (const group of lines) {
     for (const line of group) {
-      const rate = rates.find((r) => r.id === line.materialId)?.rate ?? 0;
+      const rateRow = rates.find((r) => r.id === line.materialId);
+      const rate = rateRow?.rate;
+      const missingRate = rate === undefined || rate === null || Number(rate) <= 0;
+      const resolvedRate = missingRate ? 0 : Number(rate);
       const existing = map.get(line.materialId);
       if (existing) {
         existing.quantity = round(existing.quantity + line.quantity, 4);
         existing.amount = round(existing.quantity * existing.rate, 2);
+        existing.missingRate = existing.missingRate || missingRate;
         existing.sourceEntryIds = [
           ...new Set([...existing.sourceEntryIds, ...line.sourceEntryIds]),
         ];
@@ -121,13 +125,14 @@ export function mergeMaterials(
         map.set(line.materialId, {
           id: uid('mat'),
           materialId: line.materialId,
-          name: line.name,
-          category: line.category,
-          unit: line.unit,
+          name: rateRow?.name ?? line.name,
+          category: rateRow?.category ?? line.category,
+          unit: rateRow?.unit ?? line.unit,
           quantity: line.quantity,
-          rate,
-          amount: round(line.quantity * rate, 2),
+          rate: resolvedRate,
+          amount: round(line.quantity * resolvedRate, 2),
           sourceEntryIds: [...line.sourceEntryIds],
+          missingRate,
         });
       }
     }
@@ -143,20 +148,23 @@ export function mergeLabour(
   for (const group of lines) {
     for (const line of group) {
       const lr = rates.find((r) => r.id === line.labourId);
-      if (!lr) continue;
+      const missingRate = !lr || lr.rate <= 0;
+      const rate = missingRate ? 0 : lr!.rate;
       const existing = map.get(line.labourId);
       if (existing) {
         existing.quantity = round(existing.quantity + line.quantity, 4);
         existing.amount = round(existing.quantity * existing.rate, 2);
+        existing.missingRate = existing.missingRate || missingRate;
       } else {
         map.set(line.labourId, {
           id: uid('lab'),
           labourId: line.labourId,
-          name: lr.name,
-          unit: lr.unit,
+          name: lr?.name ?? line.labourId,
+          unit: lr?.unit ?? 'job',
           quantity: line.quantity,
-          rate: lr.rate,
-          amount: round(line.quantity * lr.rate, 2),
+          rate,
+          amount: round(line.quantity * rate, 2),
+          missingRate,
         });
       }
     }
@@ -172,20 +180,23 @@ export function mergeEquipment(
   for (const group of lines) {
     for (const line of group) {
       const er = rates.find((r) => r.id === line.equipmentId);
-      if (!er) continue;
+      const missingRate = !er || er.rate <= 0;
+      const rate = missingRate ? 0 : er!.rate;
       const existing = map.get(line.equipmentId);
       if (existing) {
         existing.quantity = round(existing.quantity + line.quantity, 4);
         existing.amount = round(existing.quantity * existing.rate, 2);
+        existing.missingRate = existing.missingRate || missingRate;
       } else {
         map.set(line.equipmentId, {
           id: uid('eq'),
           equipmentId: line.equipmentId,
-          name: er.name,
-          unit: er.unit,
+          name: er?.name ?? line.equipmentId,
+          unit: er?.unit ?? 'job',
           quantity: line.quantity,
-          rate: er.rate,
-          amount: round(line.quantity * er.rate, 2),
+          rate,
+          amount: round(line.quantity * rate, 2),
+          missingRate,
         });
       }
     }

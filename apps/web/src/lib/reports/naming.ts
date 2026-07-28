@@ -26,13 +26,13 @@ const EXT: Record<ExportFormat, string> = {
   pdf: 'pdf',
 };
 
-/** Professional auto file name, e.g. BOQ_3Marla_Modern_Template_2026-07-24.pdf */
+/** Professional auto file name, e.g. BOQ_Lahore_Project_2026-07-24.pdf */
 export function buildReportFilename(ctx: ReportContext, format: ExportFormat): string {
   const type = TYPE_SLUG[ctx.config.reportType];
-  const plot = slug(ctx.plan?.plot.label || ctx.project.location || 'Plot');
-  const template = slug(ctx.templateName || 'Layout');
+  const location = slug(ctx.project.location || 'Pakistan');
+  const project = slug(ctx.project.name || 'Project');
   const date = ctx.dateLabel.slice(0, 10);
-  return `${type}_${plot}_${template}_${date}.${EXT[format]}`;
+  return `${type}_${location}_${project}_${date}.${EXT[format]}`;
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

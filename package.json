@@ -8,23 +8,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w @boq/web\" \"npm run start:dev -w @boq/api\"",
+    "dev": "npm run dev -w @boq/web",
     "dev:web": "npm run dev -w @boq/web",
-    "dev:api": "npm run start:dev -w @boq/api",
-    "templates:seed": "npm run templates:seed -w @boq/geometry",
-    "templates:sync": "npm run templates:sync -w @boq/geometry",
-    "build": "npm run build -w @boq/shared && npm run build -w @boq/engine && npm run build -w @boq/geometry && npm run build -w @boq/api && npm run build -w @boq/web",
-    "build:web": "npm run templates:sync -w @boq/geometry && npm run build -w @boq/web",
-    "build:api": "npm run build -w @boq/shared && npm run build -w @boq/engine && npm run prisma:generate -w @boq/api && npm run build -w @boq/api",
-    "type-check": "npm run type-check -w @boq/shared && npm run type-check -w @boq/engine && npm run type-check -w @boq/geometry && npm run type-check -w @boq/web",
-    "lint": "npm run lint -w @boq/web",
-    "db:generate": "npm run prisma:generate -w @boq/api",
-    "db:push": "npm run prisma:push -w @boq/api",
-    "db:seed": "npm run prisma:seed -w @boq/api",
-    "db:setup": "npm run db:generate && npm run db:push && npm run db:seed"
+    "build": "npm run build:web",
+    "build:web": "npm run build -w @boq/web",
+    "type-check": "npm run type-check -w @boq/shared && npm run type-check -w @boq/engine && npm run type-check -w @boq/web",
+    "lint": "npm run lint -w @boq/web"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
     "typescript": "^5.8.2"
   },
   "engines": {

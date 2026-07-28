@@ -7,11 +7,11 @@ import type {
   ProjectState,
   RateAnalysisFactors,
 } from '@boq/shared';
-import { DEFAULT_RATE_FACTORS } from '@boq/shared';
 import { round } from './constants';
 import { mergeEquipment, mergeLabour, mergeMaterials, uid, type CalcContext } from './helpers';
 import { runModule } from './registry';
 import { analyzeEngineering } from './advisor';
+import { normalizeRateFactors } from './cost-classification';
 
 function applyCostFactors(
   material: number,
@@ -19,6 +19,7 @@ function applyCostFactors(
   equipment: number,
   factors: RateAnalysisFactors,
 ): CostBreakdown {
+  const contingencyPercent = factors.contingencyPercent ?? 0;
   const base = material + labour + equipment;
   const transportation = round((base * factors.transportationPercent) / 100, 2);
   const loadingUnloading = round((base * factors.loadingUnloadingPercent) / 100, 2);
@@ -28,8 +29,10 @@ function applyCostFactors(
   const withOH = subBeforeOH + overhead;
   const contractorProfit = round((withOH * factors.contractorProfitPercent) / 100, 2);
   const subtotal = round(withOH + contractorProfit, 2);
-  const tax = round((subtotal * factors.taxPercent) / 100, 2);
-  const grandTotal = round(subtotal + tax, 2);
+  const contingency = round((subtotal * contingencyPercent) / 100, 2);
+  const taxable = round(subtotal + contingency, 2);
+  const tax = round((taxable * factors.taxPercent) / 100, 2);
+  const grandTotal = round(taxable + tax, 2);
   return {
     material: round(material, 2),
     labour: round(labour, 2),
@@ -39,6 +42,7 @@ function applyCostFactors(
     waste,
     overhead,
     contractorProfit,
+    contingency,
     tax,
     subtotal,
     grandTotal,
@@ -67,7 +71,7 @@ function numberBOQ(items: BOQItem[]): BOQItem[] {
 
 /** Deterministic engineering estimate from measurements + rates */
 export function calculateEstimate(state: ProjectState): EstimateResult {
-  const factors = state.rateFactors ?? DEFAULT_RATE_FACTORS;
+  const factors = normalizeRateFactors(state.rateFactors);
   const ctx: CalcContext = {
     materials: state.materialRates,
     labour: state.labourRates,
@@ -126,6 +130,40 @@ export function calculateEstimate(state: ProjectState): EstimateResult {
   const boq = numberBOQ(boqRaw);
   const costs = applyCostFactors(materialCost, labourCost, equipmentCost, factors);
   const warnings = analyzeEngineering(ordered, qtyAll);
+
+  for (const m of materials) {
+    if (m.missingRate || (m.quantity > 0 && m.rate <= 0)) {
+      warnings.push({
+        id: `rate-mat-${m.materialId}`,
+        severity: 'warning',
+        title: 'Missing material rate',
+        message: `${m.name} has quantity ${m.quantity} ${m.unit} but no valid rate in the Pakistan rate database.`,
+        suggestion: 'Open Rates → Materials, search this item, and enter a PKR unit rate.',
+      });
+    }
+  }
+  for (const l of labour) {
+    if (l.missingRate || (l.quantity > 0 && l.rate <= 0)) {
+      warnings.push({
+        id: `rate-lab-${l.labourId}`,
+        severity: 'warning',
+        title: 'Missing labour rate',
+        message: `${l.name} has quantity ${l.quantity} ${l.unit} but no valid labour rate.`,
+        suggestion: 'Open Rates → Labour and set a unit or daily rate.',
+      });
+    }
+  }
+  for (const e of equipment) {
+    if (e.missingRate || (e.quantity > 0 && e.rate <= 0)) {
+      warnings.push({
+        id: `rate-eq-${e.equipmentId}`,
+        severity: 'warning',
+        title: 'Missing equipment rate',
+        message: `${e.name} has quantity ${e.quantity} ${e.unit} but no valid equipment rate.`,
+        suggestion: 'Open Rates → Equipment and set an hourly/daily hire rate.',
+      });
+    }
+  }
 
   return {
     quantities: qtyAll,

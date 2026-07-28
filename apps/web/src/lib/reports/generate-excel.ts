@@ -1,4 +1,5 @@
 import type { Row, Worksheet } from 'exceljs';
+import { classifyBOQItem } from '@boq/engine';
 import type { ReportContext } from './assemble';
 import { formatQty } from './naming';
 
@@ -55,7 +56,9 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
     ['Prepared By', ctx.generatedBy],
     ['Date', ctx.dateLabel],
     ['Report Version', ctx.version],
-    ['Plot / Template', `${ctx.plotLabel} · ${ctx.templateName}`],
+    ...(ctx.coveredAreaSft > 0
+      ? ([['Covered Area (sft)', Math.round(ctx.coveredAreaSft)]] as [string, string | number][])
+      : []),
     ['Style', ctx.style.name],
   ];
   for (const [k, v] of meta) summary.addRow([k, v]);
@@ -63,6 +66,10 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
   if (s.costSummary || s.grandTotal) {
     summary.addRow(['Cost Summary']).font = { bold: true, size: 13 };
     const costRows: [string, number][] = [
+      ['A. Grey Structure', ctx.costSummary.greyStructure.subtotal],
+      ['B. Finishing', ctx.costSummary.finishing.subtotal],
+      ['C. External Development', ctx.costSummary.external.subtotal],
+      ['E. Miscellaneous', ctx.costSummary.miscellaneous.subtotal],
       ['Material', e.costs.material],
       ['Labour', e.costs.labour],
       ['Equipment', e.costs.equipment],
@@ -71,8 +78,9 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
       ['Waste', e.costs.waste],
       ['Overhead', e.costs.overhead],
       ['Contractor Profit', e.costs.contractorProfit],
+      ['Contingency', e.costs.contingency ?? 0],
       ['Tax', e.costs.tax],
-      ['Subtotal', e.costs.subtotal],
+      ['Subtotal (after profit)', e.costs.subtotal],
       ['Grand Total', e.costs.grandTotal],
     ];
     for (const [label, amt] of costRows) {
@@ -80,14 +88,62 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
       row.getCell(2).numFmt = '#,##0';
       if (label === 'Grand Total') row.font = { bold: true };
     }
-  }
-  if (s.plotInfo && ctx.plan) {
-    summary.addRow([]);
-    summary.addRow(['Plot Information']).font = { bold: true, size: 13 };
-    summary.addRow(['Plot', ctx.plan.plot.label]);
-    summary.addRow(['Size (ft)', `${ctx.plan.plot.widthFt} × ${ctx.plan.plot.depthFt}`]);
-    summary.addRow(['Covered Area (sft)', Math.round(ctx.coveredSft)]);
-    summary.addRow(['Open Area (sft)', Math.round(ctx.openSft)]);
+
+    const packages = wb.addWorksheet('Cost Packages');
+    styleHeader(
+      packages.addRow([
+        'Package',
+        'Sub-package',
+        'Material',
+        'Labour',
+        'Equipment',
+        'Subtotal',
+        '% of Total',
+      ]),
+      ctx.style.primary,
+    );
+    for (const g of ctx.costSummary.groups) {
+      packages.addRow([
+        `${g.code}. ${g.label}`,
+        '',
+        g.material,
+        g.labour,
+        g.equipment,
+        g.subtotal,
+        g.percentOfTotal,
+      ]).font = { bold: true };
+      for (const sg of g.subgroups) {
+        packages.addRow([
+          '',
+          sg.label,
+          sg.material,
+          sg.labour,
+          sg.equipment,
+          sg.amount ?? sg.subtotal,
+          '',
+        ]);
+      }
+    }
+    packages.addRow([
+      'MEP Electrical (info)',
+      '',
+      ctx.costSummary.mep.electrical.material,
+      ctx.costSummary.mep.electrical.labour,
+      ctx.costSummary.mep.electrical.equipment,
+      ctx.costSummary.mep.electrical.subtotal,
+      '',
+    ]);
+    packages.addRow([
+      'MEP Plumbing (info)',
+      '',
+      ctx.costSummary.mep.plumbing.material,
+      ctx.costSummary.mep.plumbing.labour,
+      ctx.costSummary.mep.plumbing.equipment,
+      ctx.costSummary.mep.plumbing.subtotal,
+      '',
+    ]);
+    moneyCol(packages, [3, 4, 5, 6]);
+    autoWidth(packages);
   }
   autoWidth(summary);
 
@@ -104,10 +160,13 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
       'Quantity',
       'Unit Rate',
       'Amount',
-      'Category',
+      'Trade Category',
+      'Cost Package',
+      'Sub-package',
     ]);
     styleHeader(header, ctx.style.primary);
     for (const item of e.boq) {
+      const cls = classifyBOQItem(item.moduleId);
       boq.addRow([
         item.itemNo,
         item.description,
@@ -117,6 +176,8 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
         item.rate,
         item.amount,
         item.category,
+        cls.groupLabel,
+        cls.subgroupLabel,
       ]);
     }
     const total = boq.addRow([
@@ -128,10 +189,12 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
       '',
       { formula: `SUM(G2:G${e.boq.length + 1})` },
       '',
+      '',
+      '',
     ]);
     total.font = { bold: true };
     moneyCol(boq, [5, 6, 7]);
-    boq.autoFilter = { from: 'A1', to: `H${e.boq.length + 1}` };
+    boq.autoFilter = { from: 'A1', to: `J${e.boq.length + 1}` };
     autoWidth(boq);
   }
 
@@ -193,15 +256,6 @@ export async function generateExcelReport(ctx: ReportContext): Promise<Blob> {
       qty.addRow([q.description, q.unit, q.quantity, q.category]);
     }
     autoWidth(qty);
-  }
-
-  if (s.roomSummary && ctx.rooms.length) {
-    const rooms = wb.addWorksheet('Room Summary');
-    styleHeader(rooms.addRow(['Room', 'Type', 'Area (m²)', 'Area (sft)']), ctx.style.primary);
-    for (const r of ctx.rooms) {
-      rooms.addRow([r.name, r.type, Number(r.areaM2.toFixed(2)), Math.round(r.areaSft)]);
-    }
-    autoWidth(rooms);
   }
 
   if (s.charts || s.costSummary) {

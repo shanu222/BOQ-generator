@@ -1,5 +1,4 @@
 import type { EstimateResult, ProjectState } from '@boq/shared';
-import type { PlanDocument } from '@boq/geometry';
 import { buildReportContext } from './assemble';
 import { buildReportFilename, downloadBlob } from './naming';
 import type { ExportFormat, ReportWizardConfig } from './types';
@@ -29,13 +28,13 @@ export async function generateReports(
   config: ReportWizardConfig,
   project: ProjectState,
   estimate: EstimateResult,
-  plan: PlanDocument | null,
+  coveredAreaSft = 0,
 ): Promise<GeneratedReportFile[]> {
   if (config.formats.length === 0) {
     throw new Error('Select at least one export format.');
   }
 
-  const ctx = buildReportContext(config, project, estimate, plan);
+  const ctx = buildReportContext(config, project, estimate, coveredAreaSft);
   const files: GeneratedReportFile[] = [];
 
   for (const format of config.formats) {
@@ -50,9 +49,9 @@ export async function generateAndDownloadReports(
   config: ReportWizardConfig,
   project: ProjectState,
   estimate: EstimateResult,
-  plan: PlanDocument | null,
+  coveredAreaSft = 0,
 ): Promise<GeneratedReportFile[]> {
-  const files = await generateReports(config, project, estimate, plan);
+  const files = await generateReports(config, project, estimate, coveredAreaSft);
   for (const file of files) {
     downloadBlob(file.blob, file.filename);
     await new Promise((r) => setTimeout(r, 250));

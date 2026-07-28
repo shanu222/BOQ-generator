@@ -6,7 +6,6 @@ import { ZoomIn, ZoomOut } from 'lucide-react';
 import type { ReportContext } from '@/lib/reports/assemble';
 import { formatPKR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
-import { FloorPlanPreviewSvg } from '@/components/reports/FloorPlanPreviewSvg';
 
 /** Live HTML preview of the report before file generation */
 export function ReportPreview({ ctx }: { ctx: ReportContext }) {
@@ -35,8 +34,10 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
             </div>
             <div className="space-y-1 text-sm opacity-95">
               <p className="text-xl font-semibold">{ctx.subtitle}</p>
-              <p>Plot: {ctx.plotLabel}</p>
-              <p>Layout: {ctx.templateName}</p>
+              <p>Location: {ctx.project.location || '—'}</p>
+              {ctx.coveredAreaSft > 0 && (
+                <p>Covered area: {Math.round(ctx.coveredAreaSft)} sft</p>
+              )}
               <p>
                 {ctx.dateLabel} · Rev {ctx.version} · {ctx.generatedBy}
               </p>
@@ -60,6 +61,12 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
               ['Client', ctx.project.client || '—'],
               ['Location', ctx.project.location],
               ['Prepared by', ctx.generatedBy],
+              ...(ctx.coveredAreaSft > 0
+                ? ([['Covered area', `${Math.round(ctx.coveredAreaSft)} sft`]] as [
+                    string,
+                    string,
+                  ][])
+                : []),
             ].map(([k, v]) => (
               <div key={k} className="rounded border border-[var(--border)] px-3 py-2">
                 <dt className="text-xs text-[var(--muted-foreground)]">{k}</dt>
@@ -67,18 +74,6 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
               </div>
             ))}
           </dl>
-        ),
-      });
-    }
-
-    if (s.floorPlan && ctx.plan) {
-      list.push({
-        id: 'plan',
-        title: 'Floor Plan',
-        body: (
-          <div className="rounded border border-[var(--border)] bg-white p-3">
-            <FloorPlanPreviewSvg plan={ctx.plan} accent={ctx.style.accent} ink={ctx.style.primary} />
-          </div>
         ),
       });
     }
@@ -132,7 +127,10 @@ export function ReportPreview({ ctx }: { ctx: ReportContext }) {
               .filter((r) => r.amount > 0)
               .slice(0, 6)
               .map((r) => (
-                <div key={r.label} className="grid grid-cols-[100px_1fr_auto] items-center gap-2 text-xs">
+                <div
+                  key={r.label}
+                  className="grid grid-cols-[100px_1fr_auto] items-center gap-2 text-xs"
+                >
                   <span className="truncate text-[var(--muted-foreground)]">{r.label}</span>
                   <div className="h-2 overflow-hidden rounded bg-[var(--muted)]">
                     <div

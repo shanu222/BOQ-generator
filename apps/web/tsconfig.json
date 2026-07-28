@@ -18,8 +18,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@boq/shared": ["../../packages/shared/src/index.ts"],
-      "@boq/engine": ["../../packages/engine/src/index.ts"],
-      "@boq/geometry": ["../../packages/geometry/src/index.ts"]
+      "@boq/engine": ["../../packages/engine/src/index.ts"]
     },
     "baseUrl": "."
   },

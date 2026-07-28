@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { MaterialCategory } from '@boq/shared';
+import { MATERIAL_CATEGORY_LABELS } from '@boq/shared';
 import { useEstimate } from '@/hooks/use-estimate';
 import { formatNumber, formatPKR } from '@/lib/format';
 import {
@@ -14,22 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-const CATEGORY_LABELS: Record<MaterialCategory, string> = {
-  cement: 'Cement',
-  sand: 'Sand',
-  crush: 'Crush / Aggregate',
-  bricks: 'Bricks',
-  blocks: 'Blocks',
-  steel: 'Steel',
-  paint: 'Paint',
-  tiles: 'Tiles',
-  waterproofing: 'Waterproofing',
-  adhesive: 'Adhesives',
-  wood: 'Wood',
-  hardware: 'Hardware',
-  other: 'Other',
-};
+import Link from 'next/link';
 
 export function MTOTable() {
   const estimate = useEstimate();
@@ -50,6 +36,7 @@ export function MTOTable() {
   }, [estimate.materials]);
 
   const total = estimate.materials.reduce((s, m) => s + m.amount, 0);
+  const missing = estimate.materials.filter((m) => m.missingRate || m.rate <= 0);
 
   if (estimate.materials.length === 0) {
     return (
@@ -68,7 +55,7 @@ export function MTOTable() {
           <Card key={cat}>
             <CardContent className="p-4">
               <p className="text-xs text-[var(--muted-foreground)]">
-                {CATEGORY_LABELS[cat] ?? cat}
+                {MATERIAL_CATEGORY_LABELS[cat] ?? cat}
               </p>
               <p className="font-display mt-1 text-lg font-semibold tabular-nums">
                 {formatPKR(stats.amount)}
@@ -80,6 +67,20 @@ export function MTOTable() {
           </Card>
         ))}
       </div>
+
+      {missing.length > 0 && (
+        <Card className="border-[color-mix(in_oklab,var(--warning)_40%,var(--border))]">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+            <p>
+              <span className="font-medium">{missing.length} material line(s)</span> have
+              missing or zero rates and contribute Rs 0 until priced.
+            </p>
+            <Link href="/rates" className="text-[var(--accent)] hover:underline">
+              Open Pakistan Rates →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -105,11 +106,25 @@ export function MTOTable() {
             </TableHeader>
             <TableBody>
               {estimate.materials.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.name}</TableCell>
+                <TableRow
+                  key={m.id}
+                  className={
+                    m.missingRate || m.rate <= 0
+                      ? 'bg-[color-mix(in_oklab,var(--warning)_12%,transparent)]'
+                      : undefined
+                  }
+                >
+                  <TableCell className="font-medium">
+                    {m.name}
+                    {(m.missingRate || m.rate <= 0) && (
+                      <Badge variant="warning" className="ml-2">
+                        No rate
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {CATEGORY_LABELS[m.category] ?? m.category}
+                      {MATERIAL_CATEGORY_LABELS[m.category] ?? m.category}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-[var(--muted-foreground)]">{m.unit}</TableCell>
@@ -145,7 +160,7 @@ export function MTOTable() {
             <TableBody>
               {byCategory.map(([cat, stats]) => (
                 <TableRow key={cat}>
-                  <TableCell>{CATEGORY_LABELS[cat] ?? cat}</TableCell>
+                  <TableCell>{MATERIAL_CATEGORY_LABELS[cat] ?? cat}</TableCell>
                   <TableCell className="text-right tabular-nums">{stats.count}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatPKR(stats.amount)}

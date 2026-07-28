@@ -89,6 +89,10 @@ export function calcPCC(entry: MeasurementEntry, _ctx: CalcContext): ModuleOutpu
   out.quantities.push(qty(entry, `PCC ${mix}`, 'm3', vol, 'Concrete'));
   out.materials.push(...concreteMaterials(mix, vol, entry.id));
   out.labour.push({ labourId: 'concrete-labour', quantity: vol });
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 12, 0.2) },
+  );
   out.boq.push({
     entryId: entry.id,
     moduleId: entry.moduleId,
@@ -120,7 +124,12 @@ export function calcRCC(entry: MeasurementEntry, _ctx: CalcContext): ModuleOutpu
   out.labour.push(
     { labourId: 'concrete-labour', quantity: vol },
     { labourId: 'formwork-labour', quantity: form },
-    { labourId: 'steel-fixer', quantity: (STEEL_KG_PER_M3[element] ?? 100) * vol / 100 },
+    { labourId: 'steel-fixer', quantity: (STEEL_KG_PER_M3[element] ?? 100) * vol },
+  );
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+    { equipmentId: 'scaffolding', quantity: Math.max(form / 60, 0.25) },
   );
   out.boq.push({
     entryId: entry.id,
@@ -171,7 +180,11 @@ export function calcFoundation(entry: MeasurementEntry, _ctx: CalcContext): Modu
     { labourId: 'formwork-labour', quantity: form },
     { labourId: 'backfill-labour', quantity: backfill },
   );
-  out.equipment.push({ equipmentId: 'excavator', quantity: Math.max(excavation / 40, 0.25) });
+  out.equipment.push(
+    { equipmentId: 'excavator', quantity: Math.max(excavation / 40, 0.25) },
+    { equipmentId: 'concrete-mixer', quantity: Math.max((pccVol + rccVol) / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(rccVol / 10, 0.2) },
+  );
   out.boq.push(
     {
       entryId: entry.id,
@@ -238,7 +251,12 @@ export function calcColumns(entry: MeasurementEntry, _ctx: CalcContext): ModuleO
   out.labour.push(
     { labourId: 'concrete-labour', quantity: vol },
     { labourId: 'formwork-labour', quantity: form },
-    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.column * vol / 100 },
+    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.column * vol },
+  );
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+    { equipmentId: 'scaffolding', quantity: Math.max(form / 50, 0.25) },
   );
   out.boq.push({
     entryId: entry.id,
@@ -270,7 +288,12 @@ export function calcBeams(entry: MeasurementEntry, _ctx: CalcContext): ModuleOut
   out.labour.push(
     { labourId: 'concrete-labour', quantity: vol },
     { labourId: 'formwork-labour', quantity: form },
-    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.beam * vol / 100 },
+    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.beam * vol },
+  );
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+    { equipmentId: 'scaffolding', quantity: Math.max(form / 55, 0.25) },
   );
   out.boq.push({
     entryId: entry.id,
@@ -302,7 +325,12 @@ export function calcSlabs(entry: MeasurementEntry, _ctx: CalcContext): ModuleOut
   out.labour.push(
     { labourId: 'concrete-labour', quantity: vol },
     { labourId: 'formwork-labour', quantity: form },
-    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.slab * vol / 100 },
+    { labourId: 'steel-fixer', quantity: STEEL_KG_PER_M3.slab * vol },
+  );
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+    { equipmentId: 'scaffolding', quantity: Math.max(form / 70, 0.25) },
   );
   out.boq.push({
     entryId: entry.id,
@@ -334,6 +362,11 @@ export function calcStaircase(entry: MeasurementEntry, _ctx: CalcContext): Modul
   out.quantities.push(qty(entry, `RCC Staircase ${mix}`, 'm3', vol, 'Concrete'));
   out.materials.push(...concreteMaterials(mix, vol, entry.id), ...steelMaterials(vol, 'staircase', entry.id));
   out.labour.push({ labourId: 'concrete-labour', quantity: vol });
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+    { equipmentId: 'scaffolding', quantity: Math.max(vol / 3, 0.25) },
+  );
   out.boq.push({
     entryId: entry.id,
     moduleId: entry.moduleId,
@@ -442,6 +475,9 @@ export function calcPlaster(entry: MeasurementEntry, _ctx: CalcContext): ModuleO
     mat('sand', 'Fine Sand (Chenab / Ravi)', 'sand', 'm3', PLASTER_SAND_M3_PER_M2_12MM * a * factor, entry.id),
   );
   out.labour.push({ labourId: 'plaster-labour', quantity: a });
+  if (H >= 3) {
+    out.equipment.push({ equipmentId: 'scaffolding', quantity: Math.max(a / 80, 0.25) });
+  }
   out.boq.push({
     entryId: entry.id,
     moduleId: entry.moduleId,
@@ -664,7 +700,7 @@ export function calcSteelBBS(entry: MeasurementEntry, _ctx: CalcContext): Module
     mat('steel-deformed', 'Deformed Steel Bars (Grade 60)', 'steel', 'kg', totalKg, entry.id),
     mat('binding-wire', 'Binding Wire', 'steel', 'kg', totalKg * BINDING_WIRE_FACTOR, entry.id),
   );
-  out.labour.push({ labourId: 'steel-fixer', quantity: totalKg / 100 });
+  out.labour.push({ labourId: 'steel-fixer', quantity: totalKg });
   out.boq.push({
     entryId: entry.id,
     moduleId: entry.moduleId,
@@ -699,6 +735,10 @@ export function calcWaterTank(entry: MeasurementEntry, _ctx: CalcContext): Modul
   out.materials.push(...concreteMaterials(mix, vol, entry.id), ...steelMaterials(vol, 'general', entry.id));
   out.materials.push(mat('waterproofing', 'Bituminous Waterproofing Membrane', 'waterproofing', 'm2', (2 * (L * W + L * H + W * H)) * Q, entry.id));
   out.labour.push({ labourId: 'concrete-labour', quantity: vol });
+  out.equipment.push(
+    { equipmentId: 'concrete-mixer', quantity: Math.max(vol / 8, 0.25) },
+    { equipmentId: 'vibrator', quantity: Math.max(vol / 10, 0.2) },
+  );
   out.boq.push({
     entryId: entry.id,
     moduleId: entry.moduleId,

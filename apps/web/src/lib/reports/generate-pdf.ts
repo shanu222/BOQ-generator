@@ -2,8 +2,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ReportContext } from './assemble';
 import { formatPKRReport, formatQty } from './naming';
-import { drawFloorPlan, type DrawSurface } from './floor-plan-draw';
-
 type JsPdfDoc = jsPDF & {
   lastAutoTable?: { finalY: number };
 };
@@ -85,10 +83,11 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
     doc.setFontSize(11);
     doc.setTextColor(60);
     const coverLines = [
-      `Plot: ${ctx.plotLabel}`,
-      `Layout / Template: ${ctx.templateName}`,
       `Client: ${ctx.project.client || '—'}`,
       `Location: ${ctx.project.location}`,
+      ...(ctx.coveredAreaSft > 0
+        ? [`Covered area: ${Math.round(ctx.coveredAreaSft)} sft`]
+        : []),
       `Prepared by: ${ctx.generatedBy}`,
       `Date: ${ctx.dateLabel}`,
       `Report version: ${ctx.version}`,
@@ -122,19 +121,16 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
   doc.setTextColor(40);
   const toc: string[] = [];
   if (s.projectInfo) toc.push('1. Project Information');
-  if (s.plotInfo) toc.push('2. Plot Information');
-  if (s.floorPlan) toc.push('3. Floor Plan');
-  if (s.roomSummary) toc.push('4. Room Summary');
-  if (s.costSummary) toc.push('5. Cost Summary');
-  if (s.charts) toc.push('6. Cost Charts');
-  if (s.boq) toc.push('7. Bill of Quantities');
-  if (s.materialTakeoff) toc.push('8. Material Takeoff');
-  if (s.labourCost) toc.push('9. Labour Cost');
-  if (s.equipmentCost) toc.push('10. Equipment Cost');
-  if (s.rateAnalysis) toc.push('11. Rate Analysis');
-  if (s.quantitySummary) toc.push('12. Quantity Summary');
-  if (s.assumptions) toc.push('13. Assumptions');
-  if (s.engineeringNotes) toc.push('14. Engineering Notes');
+  if (s.costSummary) toc.push('2. Cost Summary');
+  if (s.charts) toc.push('3. Cost Charts');
+  if (s.boq) toc.push('4. Bill of Quantities');
+  if (s.materialTakeoff) toc.push('5. Material Takeoff');
+  if (s.labourCost) toc.push('6. Labour Cost');
+  if (s.equipmentCost) toc.push('7. Equipment Cost');
+  if (s.rateAnalysis) toc.push('8. Rate Analysis');
+  if (s.quantitySummary) toc.push('9. Quantity Summary');
+  if (s.assumptions) toc.push('10. Assumptions');
+  if (s.engineeringNotes) toc.push('11. Engineering Notes');
   for (const t of toc) {
     y = ensureSpace(6, y);
     doc.text(t, margin + 2, y);
@@ -162,124 +158,17 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
     y = (doc.lastAutoTable?.finalY ?? y) + 8;
   }
 
-  if (s.plotInfo && ctx.plan) {
-    y = sectionTitle('2. Plot Information', y);
-    autoTable(doc, {
-      startY: y,
-      head: [['Field', 'Value']],
-      body: [
-        ['Plot', ctx.plan.plot.label],
-        ['Size', `${ctx.plan.plot.widthFt}′ × ${ctx.plan.plot.depthFt}′`],
-        ['Covered', `${Math.round(ctx.coveredSft)} sft`],
-        ['Open', `${Math.round(ctx.openSft)} sft`],
-        ['Template', ctx.templateName],
-      ],
-      margin: { left: margin, right: margin },
-      headStyles: { fillColor: [pr, pg, pb], textColor: 255 },
-      styles: { fontSize: 9, cellPadding: 2 },
-    });
-    y = (doc.lastAutoTable?.finalY ?? y) + 8;
-  }
-
-  if (s.floorPlan && ctx.plan) {
-    y = sectionTitle('3. Floor Plan', y);
-    y = ensureSpace(120, y);
-    const box = { x: margin, y, w: pageW - margin * 2, h: 110 };
-    doc.setDrawColor(200);
-    doc.rect(box.x, box.y, box.w, box.h);
-
-    const surface: DrawSurface = {
-      setStroke(color, width) {
-        const [r, g, b] = color.startsWith('#')
-          ? hexRgb(color)
-          : color.startsWith('rgb')
-            ? [100, 100, 100]
-            : [30, 30, 30];
-        doc.setDrawColor(r, g, b);
-        doc.setLineWidth(width * 0.2);
-      },
-      setFill(color) {
-        if (color.includes('rgba')) {
-          doc.setFillColor(240, 240, 240);
-        } else if (color.startsWith('#')) {
-          const [r, g, b] = hexRgb(color);
-          doc.setFillColor(r, g, b);
-        } else {
-          doc.setFillColor(245, 245, 245);
-        }
-      },
-      line(x1, y1, x2, y2) {
-        doc.line(x1, y1, x2, y2);
-      },
-      rect(x, y0, w, h, fill) {
-        if (fill) doc.rect(x, y0, w, h, 'F');
-        else doc.rect(x, y0, w, h, 'S');
-      },
-      polygon(points, fill) {
-        if (points.length < 2) return;
-        const flat = points.flatMap((pt) => [pt.x, pt.y]);
-        if (fill) {
-          // jsPDF doesn't have native fill polygon easily — stroke path
-          doc.setDrawColor(220);
-        }
-        for (let i = 0; i < points.length; i++) {
-          const a = points[i];
-          const b = points[(i + 1) % points.length];
-          doc.line(a.x, a.y, b.x, b.y);
-        }
-        void flat;
-      },
-      text(str, x, y0, size, color) {
-        doc.setFontSize(size * 0.7);
-        if (color?.startsWith('#')) {
-          const [r, g, b] = hexRgb(color);
-          doc.setTextColor(r, g, b);
-        }
-        doc.text(str, x, y0, { align: 'center' });
-      },
-      circle(x, y0, r) {
-        doc.circle(x, y0, r, 'S');
-      },
-    };
-
-    drawFloorPlan(ctx.plan, surface, box, {
-      primary: ctx.style.accent,
-      ink: ctx.style.primary,
-    });
-    y = box.y + box.h + 8;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text('Figure — Ground Floor Plan (vector geometry)', pageW / 2, y, { align: 'center' });
-    y += 8;
-  }
-
-  if (s.roomSummary && ctx.rooms.length) {
-    y = sectionTitle('4. Room Summary', y);
-    autoTable(doc, {
-      startY: y,
-      head: [['Room', 'Type', 'm²', 'sft']],
-      body: ctx.rooms.map((r) => [
-        r.name,
-        r.type,
-        formatQty(r.areaM2, 2),
-        String(Math.round(r.areaSft)),
-      ]),
-      margin: { left: margin, right: margin },
-      headStyles: { fillColor: [pr, pg, pb], textColor: 255 },
-      styles: { fontSize: 8, cellPadding: 1.5 },
-    });
-    y = (doc.lastAutoTable?.finalY ?? y) + 8;
-  }
-
   if (s.costSummary || s.grandTotal) {
-    y = sectionTitle('5. Cost Summary', y);
+    y = sectionTitle('2. Cost Summary', y);
     autoTable(doc, {
       startY: y,
-      head: [['Component', 'Amount (PKR)', '%']],
+      head: [['Package', 'Amount (PKR)', '%']],
       body: [
-        ...ctx.rateBreakdown
-          .filter((r) => r.amount > 0)
-          .map((r) => [r.label, formatPKRReport(r.amount), `${r.pct.toFixed(1)}%`]),
+        ...ctx.costSummary.groups.map((g) => [
+          `${g.code}. ${g.label}`,
+          formatPKRReport(g.subtotal),
+          `${g.percentOfTotal.toFixed(1)}%`,
+        ]),
         ['Grand Total', formatPKRReport(ctx.estimate.costs.grandTotal), '100%'],
       ],
       margin: { left: margin, right: margin },
@@ -290,6 +179,41 @@ export async function generatePdfReport(ctx: ReportContext): Promise<Blob> {
           data.cell.styles.fontStyle = 'bold';
         }
       },
+    });
+    y = (doc.lastAutoTable?.finalY ?? y) + 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Package', 'Sub-package', 'Amount']],
+      body: ctx.costSummary.groups.flatMap((g) =>
+        g.subgroups.map((sg) => [
+          `${g.code}. ${g.label}`,
+          sg.label,
+          formatPKRReport(sg.amount ?? sg.subtotal),
+        ]),
+      ),
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [pr, pg, pb], textColor: 255 },
+      styles: { fontSize: 8, cellPadding: 1.5 },
+    });
+    y = (doc.lastAutoTable?.finalY ?? y) + 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [['MEP (informative)', 'Amount (PKR)']],
+      body: [
+        [
+          ctx.costSummary.mep.electrical.label,
+          formatPKRReport(ctx.costSummary.mep.electrical.subtotal),
+        ],
+        [
+          ctx.costSummary.mep.plumbing.label,
+          formatPKRReport(ctx.costSummary.mep.plumbing.subtotal),
+        ],
+      ],
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [pr, pg, pb], textColor: 255 },
+      styles: { fontSize: 8, cellPadding: 1.5 },
     });
     y = (doc.lastAutoTable?.finalY ?? y) + 8;
   }

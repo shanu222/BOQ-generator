@@ -11,7 +11,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { EstimateResult, ProjectState } from '@boq/shared';
-import type { PlanDocument } from '@boq/geometry';
 import { cn } from '@/lib/cn';
 import { formatPKR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -29,20 +28,20 @@ import {
 } from '@/lib/reports/types';
 import { buildReportContext } from '@/lib/reports/assemble';
 import { ReportPreview } from '@/components/reports/ReportPreview';
+import { useProjectStore } from '@/store/project-store';
 
 const STEPS = ['Report Type', 'Format', 'Options', 'Preview & Generate'] as const;
 
 export function ReportWizard({
   project,
   estimate,
-  plan,
   onGenerated,
 }: {
   project: ProjectState;
   estimate: EstimateResult;
-  plan: PlanDocument | null;
   onGenerated?: (info: { formats: string[]; total: number }) => void;
 }) {
+  const coveredAreaSft = useProjectStore((s) => s.calculator.areaSft);
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ReportWizardConfig>(() => {
     const base = defaultWizardConfig();
@@ -61,8 +60,8 @@ export function ReportWizard({
   const [error, setError] = useState<string | null>(null);
 
   const ctx = useMemo(
-    () => buildReportContext(config, project, estimate, plan),
-    [config, project, estimate, plan],
+    () => buildReportContext(config, project, estimate, coveredAreaSft),
+    [config, project, estimate, coveredAreaSft],
   );
 
   function toggleFormat(fmt: ExportFormat) {
@@ -86,7 +85,12 @@ export function ReportWizard({
     setMessage(null);
     try {
       const { generateAndDownloadReports } = await import('@/lib/reports/generate');
-      const files = await generateAndDownloadReports(config, project, estimate, plan);
+      const files = await generateAndDownloadReports(
+        config,
+        project,
+        estimate,
+        coveredAreaSft,
+      );
       setMessage(
         `Generated ${files.length} file${files.length > 1 ? 's' : ''}: ${files
           .map((f) => f.filename)

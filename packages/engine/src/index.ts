@@ -5,3 +5,6 @@ export * from './registry';
 export * from './calculate';
 export * from './advisor';
 export * from './defaults';
+export * from './cost-classification';
+export * from './rate-audit';
+export * from './area-based';

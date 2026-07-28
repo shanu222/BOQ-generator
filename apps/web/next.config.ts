@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@boq/engine', '@boq/shared', '@boq/geometry'],
+  transpilePackages: ['@boq/engine', '@boq/shared'],
   // Keep report libs out of the server bundle — they are dynamically imported client-side only
   serverExternalPackages: ['exceljs', 'docx', 'jspdf', 'jspdf-autotable'],
   webpack: (config, { isServer }) => {

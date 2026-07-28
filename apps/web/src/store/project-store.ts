@@ -12,12 +12,15 @@ import type {
   ProjectState,
   RateAnalysisFactors,
 } from '@boq/shared';
-import { createDefaultProject, createEntry, getModule } from '@boq/engine';
 import {
-  extractMeasurements,
-  mergePlannerEntries,
-  type PlanDocument,
-} from '@boq/geometry';
+  applyAreaToProject,
+  createDefaultProject,
+  createEntry,
+  getModule,
+  mergeRateCatalog,
+  normalizeRateFactors,
+  type CalculatorMode,
+} from '@boq/engine';
 
 const MAX_HISTORY = 50;
 
@@ -33,10 +36,26 @@ export interface RecentReport {
   total: number;
 }
 
+export interface CalculatorState {
+  mode: CalculatorMode;
+  areaSft: number;
+  costPerSft: number;
+  durationMonths: number;
+  calculated: boolean;
+}
+
+export interface QuotationState {
+  clientName: string;
+  projectName: string;
+  projectAddress: string;
+  notes: string;
+  signatoryName: string;
+}
+
 interface ProjectStore {
   project: ProjectState;
-  /** Smart House Planner geometry (null = not using planner) */
-  plan: PlanDocument | null;
+  calculator: CalculatorState;
+  quotation: QuotationState;
   past: ProjectState[];
   future: ProjectState[];
   hydrated: boolean;
@@ -74,9 +93,10 @@ interface ProjectStore {
   setSectionOrder: (order: string[]) => void;
   touchSaved: () => void;
   addRecentReport: (report: Omit<RecentReport, 'id' | 'createdAt'>) => void;
-  setPlan: (plan: PlanDocument | null) => void;
-  updatePlan: (mutator: (plan: PlanDocument) => PlanDocument) => void;
-  clearPlan: () => void;
+  setCalculator: (partial: Partial<CalculatorState>) => void;
+  resetCalculator: () => void;
+  runAreaCalculation: () => void;
+  setQuotation: (partial: Partial<QuotationState>) => void;
 }
 
 function withHistory(
@@ -94,30 +114,28 @@ function withHistory(
   }));
 }
 
-function syncPlanIntoProject(
-  project: ProjectState,
-  plan: PlanDocument | null,
-): ProjectState {
-  if (!plan) {
-    return {
-      ...project,
-      entries: project.entries.filter((e) => !e.label.startsWith('[Plan]')),
-    };
-  }
-  const normalized = { ...plan, dimensions: plan.dimensions ?? [] };
-  const extracted = extractMeasurements(normalized);
-  return {
-    ...project,
-    entries: mergePlannerEntries(project.entries, extracted),
-    name: project.name === 'Untitled Estimate' ? plan.name : project.name,
-  };
-}
+const defaultCalculator = (): CalculatorState => ({
+  mode: 'simple',
+  areaSft: 1200,
+  costPerSft: 4500,
+  durationMonths: 6,
+  calculated: false,
+});
+
+const defaultQuotation = (): QuotationState => ({
+  clientName: '',
+  projectName: '',
+  projectAddress: '',
+  notes: '',
+  signatoryName: '',
+});
 
 export const useProjectStore = create<ProjectStore>()(
   persist(
     (set, get) => ({
       project: createDefaultProject(),
-      plan: null,
+      calculator: defaultCalculator(),
+      quotation: defaultQuotation(),
       past: [],
       future: [],
       hydrated: false,
@@ -163,7 +181,7 @@ export const useProjectStore = create<ProjectStore>()(
 
       resetProject: () => {
         withHistory(set, get, () => createDefaultProject());
-        set({ plan: null });
+        set({ calculator: defaultCalculator(), quotation: defaultQuotation() });
       },
 
       updateMeta: (partial) =>
@@ -195,9 +213,7 @@ export const useProjectStore = create<ProjectStore>()(
       removeEntry: (id) =>
         withHistory(set, get, (p) => ({
           ...p,
-          entries: p.entries
-            .filter((e) => e.id !== id)
-            .map((e, i) => ({ ...e, order: i })),
+          entries: p.entries.filter((e) => e.id !== id),
         })),
 
       reorderEntries: (orderedIds) =>
@@ -216,7 +232,9 @@ export const useProjectStore = create<ProjectStore>()(
         withHistory(set, get, (p) => ({
           ...p,
           materialRates: p.materialRates.map((m) =>
-            m.id === id ? { ...m, rate } : m,
+            m.id === id
+              ? { ...m, rate, updatedAt: new Date().toISOString() }
+              : m,
           ),
         })),
 
@@ -224,7 +242,9 @@ export const useProjectStore = create<ProjectStore>()(
         withHistory(set, get, (p) => ({
           ...p,
           labourRates: p.labourRates.map((m) =>
-            m.id === id ? { ...m, rate } : m,
+            m.id === id
+              ? { ...m, rate, updatedAt: new Date().toISOString() }
+              : m,
           ),
         })),
 
@@ -232,7 +252,9 @@ export const useProjectStore = create<ProjectStore>()(
         withHistory(set, get, (p) => ({
           ...p,
           equipmentRates: p.equipmentRates.map((m) =>
-            m.id === id ? { ...m, rate } : m,
+            m.id === id
+              ? { ...m, rate, updatedAt: new Date().toISOString() }
+              : m,
           ),
         })),
 
@@ -284,43 +306,59 @@ export const useProjectStore = create<ProjectStore>()(
           ].slice(0, 12),
         })),
 
-      setPlan: (plan) => {
-        const { project, past } = get();
+      setCalculator: (partial) =>
+        set((s) => ({ calculator: { ...s.calculator, ...partial } })),
+
+      resetCalculator: () =>
+        set({
+          calculator: defaultCalculator(),
+          project: {
+            ...get().project,
+            entries: [],
+          },
+        }),
+
+      runAreaCalculation: () => {
+        const { project, calculator, past } = get();
+        const next = applyAreaToProject(project, calculator.areaSft);
         set({
           past: [...past, cloneProject(project)].slice(-MAX_HISTORY),
           future: [],
-          plan,
-          project: syncPlanIntoProject(cloneProject(project), plan),
+          project: next,
+          calculator: { ...calculator, calculated: true },
+          quotation: {
+            ...get().quotation,
+            projectName: get().quotation.projectName || next.name,
+          },
           lastSavedAt: new Date().toISOString(),
         });
       },
 
-      updatePlan: (mutator) => {
-        const { plan, project, past } = get();
-        if (!plan) return;
-        const nextPlan = mutator(structuredClone(plan));
-        set({
-          past: [...past, cloneProject(project)].slice(-MAX_HISTORY),
-          future: [],
-          plan: nextPlan,
-          project: syncPlanIntoProject(cloneProject(project), nextPlan),
-          lastSavedAt: new Date().toISOString(),
-        });
-      },
-
-      clearPlan: () => {
-        get().setPlan(null);
-      },
+      setQuotation: (partial) =>
+        set((s) => ({ quotation: { ...s.quotation, ...partial } })),
     }),
     {
       name: 'boq-pro-project',
       partialize: (s) => ({
         project: s.project,
-        plan: s.plan,
+        calculator: s.calculator,
+        quotation: s.quotation,
         recentReports: s.recentReports,
         lastSavedAt: s.lastSavedAt,
       }),
       onRehydrateStorage: () => (state) => {
+        if (state?.project) {
+          state.project = mergeRateCatalog({
+            ...state.project,
+            rateFactors: normalizeRateFactors(state.project.rateFactors),
+          });
+        }
+        if (state && !state.calculator) {
+          state.calculator = defaultCalculator();
+        }
+        if (state && !state.quotation) {
+          state.quotation = defaultQuotation();
+        }
         state?.setHydrated(true);
       },
     },

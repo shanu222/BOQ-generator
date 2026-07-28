@@ -14,24 +14,158 @@ export type Unit =
   | 'gallon'
   | 'job'
   | 'rft'
-  | 'rm';
+  | 'rm'
+  | 'set'
+  | 'pair'
+  | 'hour'
+  | 'day';
 
 export type MaterialCategory =
+  | 'cement-concrete'
   | 'cement'
   | 'sand'
   | 'crush'
+  | 'reinforcement'
+  | 'steel'
+  | 'masonry'
   | 'bricks'
   | 'blocks'
-  | 'steel'
-  | 'paint'
+  | 'formwork'
+  | 'timber'
+  | 'plaster'
+  | 'flooring'
   | 'tiles'
-  | 'waterproofing'
   | 'adhesive'
+  | 'paint'
+  | 'waterproofing'
+  | 'doors'
+  | 'windows'
   | 'wood'
   | 'hardware'
+  | 'electrical'
+  | 'plumbing'
+  | 'roofing'
+  | 'miscellaneous'
   | 'other';
 
+export type LabourCategory =
+  | 'earthwork'
+  | 'concrete'
+  | 'steel'
+  | 'masonry'
+  | 'finishing'
+  | 'openings'
+  | 'electrical'
+  | 'plumbing'
+  | 'supervision'
+  | 'general';
+
+export type EquipmentCategory =
+  | 'earthmoving'
+  | 'concrete'
+  | 'lifting'
+  | 'power'
+  | 'tools'
+  | 'access'
+  | 'general';
+
+export type RateBasis = 'unit' | 'daily' | 'hourly' | 'job';
+
 export type CostCategory = 'material' | 'labour' | 'equipment';
+
+/** Top-level Pakistani residential estimate packages */
+export type CostGroupId =
+  | 'grey-structure'
+  | 'finishing'
+  | 'external-development'
+  | 'miscellaneous';
+
+/** Sub-packages within a cost group (classification tree) */
+export type CostSubgroupId =
+  | 'site-preparation'
+  | 'foundations'
+  | 'plinth'
+  | 'rcc-structure'
+  | 'masonry'
+  | 'roof-structure'
+  | 'grey-electrical'
+  | 'grey-plumbing'
+  | 'reinforcement'
+  | 'formwork'
+  | 'plaster'
+  | 'flooring'
+  | 'ceiling'
+  | 'paint'
+  | 'waterproofing'
+  | 'doors'
+  | 'windows'
+  | 'kitchen'
+  | 'washroom'
+  | 'electrical-finishing'
+  | 'plumbing-finishing'
+  | 'misc-finishing'
+  | 'boundary-external'
+  | 'gates-driveways'
+  | 'drainage-external'
+  | 'landscaping'
+  | 'underground-tanks'
+  | 'septic-soak'
+  | 'transportation'
+  | 'loading-unloading'
+  | 'waste'
+  | 'overhead'
+  | 'contractor-profit'
+  | 'contingency'
+  | 'taxes'
+  | 'unclassified';
+
+/** Informative MEP roll-up (does not add to grand total) */
+export type MepKind = 'electrical' | 'plumbing' | 'none';
+
+export interface CostClassification {
+  groupId: CostGroupId;
+  subgroupId: CostSubgroupId;
+  mepKind: MepKind;
+}
+
+export interface CostComponentTotals {
+  material: number;
+  labour: number;
+  equipment: number;
+  subtotal: number;
+}
+
+export interface CostSubgroupSummary extends CostComponentTotals {
+  id: CostSubgroupId;
+  label: string;
+  itemCount: number;
+  /** Present when subgroup is a rate-analysis add-on (misc) */
+  amount?: number;
+}
+
+export interface CostGroupSummary extends CostComponentTotals {
+  id: CostGroupId;
+  label: string;
+  code: string;
+  percentOfTotal: number;
+  subgroups: CostSubgroupSummary[];
+}
+
+export interface MepSummary {
+  electrical: CostComponentTotals & { label: string };
+  plumbing: CostComponentTotals & { label: string };
+}
+
+export interface ProjectCostSummary {
+  groups: CostGroupSummary[];
+  mep: MepSummary;
+  greyStructure: CostGroupSummary;
+  finishing: CostGroupSummary;
+  external: CostGroupSummary;
+  miscellaneous: CostGroupSummary;
+  directSubtotal: number;
+  grandTotal: number;
+}
 
 export type ModuleId =
   | 'excavation'
@@ -90,6 +224,8 @@ export interface MaterialRate {
   defaultRate: number;
   rate: number;
   consumptionNote?: string;
+  /** ISO timestamp when user last edited the live rate */
+  updatedAt?: string;
 }
 
 export interface LabourRate {
@@ -99,6 +235,9 @@ export interface LabourRate {
   unit: Unit;
   defaultRate: number;
   rate: number;
+  category?: LabourCategory;
+  rateBasis?: RateBasis;
+  updatedAt?: string;
 }
 
 export interface EquipmentRate {
@@ -108,6 +247,9 @@ export interface EquipmentRate {
   unit: Unit;
   defaultRate: number;
   rate: number;
+  category?: EquipmentCategory;
+  rateBasis?: RateBasis;
+  updatedAt?: string;
 }
 
 export interface RateAnalysisFactors {
@@ -116,6 +258,8 @@ export interface RateAnalysisFactors {
   wastePercent: number;
   overheadPercent: number;
   contractorProfitPercent: number;
+  /** Contingency allowance (% of amount after profit, before tax) */
+  contingencyPercent: number;
   taxPercent: number;
 }
 
@@ -149,6 +293,8 @@ export interface MaterialLine {
   rate: number;
   amount: number;
   sourceEntryIds: string[];
+  /** True when rate was missing or zero in the database */
+  missingRate?: boolean;
 }
 
 export interface LabourLine {
@@ -159,6 +305,7 @@ export interface LabourLine {
   quantity: number;
   rate: number;
   amount: number;
+  missingRate?: boolean;
 }
 
 export interface EquipmentLine {
@@ -169,6 +316,7 @@ export interface EquipmentLine {
   quantity: number;
   rate: number;
   amount: number;
+  missingRate?: boolean;
 }
 
 export interface BOQItem {
@@ -196,7 +344,9 @@ export interface CostBreakdown {
   waste: number;
   overhead: number;
   contractorProfit: number;
+  contingency: number;
   tax: number;
+  /** Direct + add-ons before contingency & tax (after profit) */
   subtotal: number;
   grandTotal: number;
 }
@@ -250,5 +400,122 @@ export const DEFAULT_RATE_FACTORS: RateAnalysisFactors = {
   wastePercent: 5,
   overheadPercent: 8,
   contractorProfitPercent: 10,
+  contingencyPercent: 5,
   taxPercent: 0,
 };
+
+export const COST_GROUP_META: Record<
+  CostGroupId,
+  { label: string; code: string; description: string }
+> = {
+  'grey-structure': {
+    label: 'Grey Structure',
+    code: 'A',
+    description: 'Structural shell, rough-in services, steel & formwork',
+  },
+  finishing: {
+    label: 'Finishing',
+    code: 'B',
+    description: 'Plaster, floors, paint, openings, fixtures & finishing MEP',
+  },
+  'external-development': {
+    label: 'External Development',
+    code: 'C',
+    description: 'Boundary, tanks, septic and external works (optional)',
+  },
+  miscellaneous: {
+    label: 'Miscellaneous',
+    code: 'E',
+    description: 'Transport, waste, overhead, profit, contingency & taxes',
+  },
+};
+
+export const COST_SUBGROUP_LABELS: Record<CostSubgroupId, string> = {
+  'site-preparation': 'Site Preparation / Earthwork',
+  foundations: 'Foundations',
+  plinth: 'Plinth',
+  'rcc-structure': 'RCC Structure',
+  masonry: 'Masonry',
+  'roof-structure': 'Roof Structure',
+  'grey-electrical': 'Grey Electrical (Rough-In)',
+  'grey-plumbing': 'Grey Plumbing (Rough-In)',
+  reinforcement: 'Reinforcement',
+  formwork: 'Formwork',
+  plaster: 'Plaster',
+  flooring: 'Flooring',
+  ceiling: 'Ceiling',
+  paint: 'Paint & Surface Finish',
+  waterproofing: 'Waterproofing',
+  doors: 'Doors',
+  windows: 'Windows',
+  kitchen: 'Kitchen',
+  washroom: 'Washroom',
+  'electrical-finishing': 'Electrical Finishing',
+  'plumbing-finishing': 'Plumbing Finishing',
+  'misc-finishing': 'Miscellaneous Finishing',
+  'boundary-external': 'Boundary Wall',
+  'gates-driveways': 'Gates & Driveways',
+  'drainage-external': 'External Drainage',
+  landscaping: 'Landscaping',
+  'underground-tanks': 'Underground Water Tank',
+  'septic-soak': 'Septic Tank / Soak Pit',
+  transportation: 'Transportation',
+  'loading-unloading': 'Loading / Unloading',
+  waste: 'Waste',
+  overhead: 'Overhead',
+  'contractor-profit': 'Contractor Profit',
+  contingency: 'Contingency',
+  taxes: 'Taxes',
+  unclassified: 'Unclassified',
+};
+
+export const MATERIAL_CATEGORY_LABELS: Record<MaterialCategory, string> = {
+  'cement-concrete': 'Cement & Concrete',
+  cement: 'Cement',
+  sand: 'Sand',
+  crush: 'Crush / Aggregate',
+  reinforcement: 'Reinforcement',
+  steel: 'Steel',
+  masonry: 'Masonry',
+  bricks: 'Bricks',
+  blocks: 'Blocks',
+  formwork: 'Formwork',
+  timber: 'Timber',
+  plaster: 'Plaster',
+  flooring: 'Flooring',
+  tiles: 'Tiles',
+  adhesive: 'Adhesives',
+  paint: 'Paint',
+  waterproofing: 'Waterproofing',
+  doors: 'Doors',
+  windows: 'Windows',
+  wood: 'Wood',
+  hardware: 'Hardware',
+  electrical: 'Electrical',
+  plumbing: 'Plumbing',
+  roofing: 'Roofing',
+  miscellaneous: 'Miscellaneous',
+  other: 'Other',
+};
+
+export const UNIT_LABELS: Record<Unit, string> = {
+  m: 'Meter (m)',
+  m2: 'Square Meter (m²)',
+  m3: 'Cubic Meter (m³)',
+  kg: 'Kilogram (kg)',
+  ton: 'Ton',
+  nos: 'Number (nos)',
+  bag: 'Bag (50 kg)',
+  cft: 'Cubic Foot (cft)',
+  sft: 'Square Foot (sft)',
+  ltr: 'Litre (ltr)',
+  gallon: 'Gallon',
+  job: 'Job / Lump sum',
+  rft: 'Running Foot (rft)',
+  rm: 'Running Meter (rm)',
+  set: 'Set',
+  pair: 'Pair',
+  hour: 'Hour',
+  day: 'Day',
+};
+

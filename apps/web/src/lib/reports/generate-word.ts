@@ -5,7 +5,6 @@ import {
   Footer,
   Header,
   HeadingLevel,
-  ImageRun,
   Packer,
   PageBreak,
   PageNumber,
@@ -20,7 +19,6 @@ import {
 } from 'docx';
 import type { ReportContext } from './assemble';
 import { formatPKRReport, formatQty } from './naming';
-import { renderFloorPlanPng } from './floor-plan-draw';
 
 function p(text: string, opts?: { bold?: boolean; size?: number; color?: string; center?: boolean }) {
   return new Paragraph({
@@ -102,8 +100,12 @@ export async function generateWordReport(ctx: ReportContext): Promise<Blob> {
     blocks.push(p(ctx.title, { size: 28, center: true, color: ctx.style.accent }));
     blocks.push(p(''));
     blocks.push(p(ctx.subtitle, { bold: true, size: 26, center: true }));
-    blocks.push(p(`Plot: ${ctx.plotLabel}`, { center: true }));
-    blocks.push(p(`Layout: ${ctx.templateName}`, { center: true }));
+    blocks.push(p(`Location: ${ctx.project.location || '—'}`, { center: true }));
+    if (ctx.coveredAreaSft > 0) {
+      blocks.push(
+        p(`Covered area: ${Math.round(ctx.coveredAreaSft)} sft`, { center: true }),
+      );
+    }
     blocks.push(p(`Date: ${ctx.dateLabel}  ·  Version ${ctx.version}`, { center: true }));
     blocks.push(p(`Prepared by: ${ctx.generatedBy}`, { center: true }));
     blocks.push(p(`Client: ${ctx.project.client || '—'}`, { center: true }));
@@ -157,71 +159,58 @@ export async function generateWordReport(ctx: ReportContext): Promise<Blob> {
     );
   }
 
-  if (s.plotInfo && ctx.plan) {
-    blocks.push(h1('2. Plot Information', color));
+  if (s.costSummary || s.grandTotal) {
+    blocks.push(h1('2. Cost Summary', color));
     blocks.push(
       simpleTable(
-        ['Field', 'Value'],
+        ['Package', 'Amount (PKR)', '%'],
         [
-          ['Plot', ctx.plan.plot.label],
-          ['Dimensions', `${ctx.plan.plot.widthFt}′ × ${ctx.plan.plot.depthFt}′`],
-          ['Covered Area', `${Math.round(ctx.coveredSft)} sft`],
-          ['Open Area', `${Math.round(ctx.openSft)} sft`],
-          ['Template', ctx.templateName],
+          ...ctx.costSummary.groups.map((g) => [
+            `${g.code}. ${g.label}`,
+            formatPKRReport(g.subtotal),
+            `${g.percentOfTotal.toFixed(1)}%`,
+          ]),
+          [
+            'Grand Total',
+            formatPKRReport(ctx.estimate.costs.grandTotal),
+            '100%',
+          ],
         ],
         color,
       ),
     );
-  }
-
-  if (s.floorPlan && ctx.plan) {
-    blocks.push(h1('3. Floor Plan', color));
-    blocks.push(p('Vector geometry rendered from the Smart House Planner model.'));
-    try {
-      const dataUrl = await renderFloorPlanPng(ctx.plan, 1000, 780, {
-        primary: ctx.style.accent,
-        ink: ctx.style.primary,
-      });
-      const base64 = dataUrl.split(',')[1];
-      if (base64) {
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        blocks.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new ImageRun({
-                type: 'png',
-                data: bytes,
-                transformation: { width: 520, height: 400 },
-              }),
-            ],
-          }),
-        );
-        blocks.push(p('Figure — Ground Floor Plan', { center: true }));
-      }
-    } catch {
-      blocks.push(p('Floor plan could not be embedded in this environment.'));
-    }
-  }
-
-  if (s.roomSummary && ctx.rooms.length) {
-    blocks.push(h1('4. Room Summary', color));
+    blocks.push(p('Package detail', { bold: true, size: 22 }));
     blocks.push(
       simpleTable(
-        ['Room', 'Type', 'Area (m²)', 'Area (sft)'],
-        ctx.rooms.map((r) => [
-          r.name,
-          r.type,
-          formatQty(r.areaM2, 2),
-          String(Math.round(r.areaSft)),
-        ]),
+        ['Package', 'Sub-package', 'Amount (PKR)'],
+        ctx.costSummary.groups.flatMap((g) =>
+          g.subgroups.map((sg) => [
+            `${g.code}. ${g.label}`,
+            sg.label,
+            formatPKRReport(sg.amount ?? sg.subtotal),
+          ]),
+        ),
         color,
       ),
     );
-  }
-
-  if (s.costSummary || s.grandTotal) {
-    blocks.push(h1('5. Cost Summary', color));
+    blocks.push(p('MEP summary (informative)', { bold: true, size: 22 }));
+    blocks.push(
+      simpleTable(
+        ['Service', 'Amount (PKR)'],
+        [
+          [
+            ctx.costSummary.mep.electrical.label,
+            formatPKRReport(ctx.costSummary.mep.electrical.subtotal),
+          ],
+          [
+            ctx.costSummary.mep.plumbing.label,
+            formatPKRReport(ctx.costSummary.mep.plumbing.subtotal),
+          ],
+        ],
+        color,
+      ),
+    );
+    blocks.push(p('Rate analysis build-up', { bold: true, size: 22 }));
     blocks.push(
       simpleTable(
         ['Component', 'Amount (PKR)'],

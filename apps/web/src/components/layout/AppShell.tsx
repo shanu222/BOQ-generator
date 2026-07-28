@@ -6,13 +6,11 @@ import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
-  Ruler,
+  Calculator,
   ClipboardList,
   Boxes,
-  CircleDollarSign,
-  PieChart,
   FileOutput,
-  Bot,
+  Settings,
   Moon,
   Sun,
   Undo2,
@@ -20,7 +18,6 @@ import {
   Menu,
   X,
   Save,
-  PenTool,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
@@ -32,14 +29,11 @@ import { useEstimate } from '@/hooks/use-estimate';
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/planner', label: 'Planner', icon: PenTool },
-  { href: '/measure', label: 'Measure', icon: Ruler },
+  { href: '/calculator', label: 'Cost Calculator', icon: Calculator },
   { href: '/boq', label: 'BOQ', icon: ClipboardList },
-  { href: '/mto', label: 'MTO', icon: Boxes },
-  { href: '/rates', label: 'Rates', icon: CircleDollarSign },
-  { href: '/analysis', label: 'Analysis', icon: PieChart },
+  { href: '/mto', label: 'Material Takeoff', icon: Boxes },
   { href: '/reports', label: 'Report Center', icon: FileOutput },
-  { href: '/assistant', label: 'Assistant', icon: Bot },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -73,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="min-w-0">
           <p className="font-display text-sm font-semibold leading-tight">BOQ Pro</p>
           <p className="truncate text-[11px] text-[var(--muted-foreground)]">
-            Estimation Studio
+            Residential Estimation
           </p>
         </div>
       </div>
@@ -150,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       <div className="flex min-h-screen flex-1 flex-col lg:pl-60">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_85%,transparent)] px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_88%,transparent)] px-4 backdrop-blur-md">
           <Button
             variant="ghost"
             size="icon"
@@ -160,26 +154,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-sm font-semibold">
-              {project.name || 'Untitled Estimate'}
-            </p>
+            <p className="truncate text-sm font-medium">{project.name}</p>
             <p className="truncate text-[11px] text-[var(--muted-foreground)]">
               {project.location || 'Pakistan'}
-              {lastSavedAt
-                ? ` · Autosaved ${new Date(lastSavedAt).toLocaleTimeString()}`
-                : ' · Autosave ready'}
+              {lastSavedAt ? ` · Saved ${new Date(lastSavedAt).toLocaleTimeString()}` : ''}
             </p>
           </div>
-
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={undo}
               disabled={past.length === 0}
-              title="Undo (Ctrl+Z)"
+              aria-label="Undo"
             >
               <Undo2 className="h-4 w-4" />
             </Button>
@@ -188,17 +176,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               size="icon"
               onClick={redo}
               disabled={future.length === 0}
-              title="Redo (Ctrl+Y)"
+              aria-label="Redo"
             >
               <Redo2 className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Autosave (Ctrl+S)"
-              className="hidden sm:inline-flex"
-            >
-              <Save className="h-4 w-4" />
+            <Button variant="ghost" size="icon" aria-label="Saved" disabled>
+              <Save className="h-4 w-4 opacity-50" />
             </Button>
             {mounted && (
               <Button
@@ -207,17 +190,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 aria-label="Toggle theme"
               >
-                {theme === 'dark' ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
             )}
           </div>
         </header>
-
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

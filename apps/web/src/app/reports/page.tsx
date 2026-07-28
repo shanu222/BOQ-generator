@@ -8,7 +8,6 @@ import { formatPKR } from '@/lib/format';
 export default function ReportsPage() {
   const estimate = useEstimate();
   const project = useProjectStore((s) => s.project);
-  const plan = useProjectStore((s) => s.plan);
   const addRecentReport = useProjectStore((s) => s.addRecentReport);
 
   return (
@@ -18,20 +17,18 @@ export default function ReportsPage() {
           Report Center
         </p>
         <h1 className="font-display mt-1 text-3xl font-semibold">
-          Professional Engineering Reports
+          Export BOQ & estimates
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Generate consulting-grade BOQ, material takeoff, and complete engineering reports as
-          Excel, Word, or PDF — suitable for tender submission and client presentation. Current
-          estimate {formatPKR(estimate.costs.grandTotal)} · {estimate.boq.length} BOQ items
-          {plan ? ` · Plan: ${plan.name}` : ''}.
+          Generate Excel, Word, or PDF reports from your area-based estimate.
+          Current total {formatPKR(estimate.costs.grandTotal)} · {estimate.boq.length}{' '}
+          BOQ items.
         </p>
       </div>
 
       <ReportWizard
         project={project}
         estimate={estimate}
-        plan={plan}
         onGenerated={({ formats, total }) => {
           for (const type of formats) {
             if (type === 'xlsx' || type === 'docx' || type === 'pdf') {
